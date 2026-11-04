@@ -1,13 +1,55 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { getItemId, getProductImage } from "../api";
+import { getItemId, getProductImage, API_ORDERS_URL, getAuthHeaders } from "../api";
 import "../App.css";
 
 function Cart({ cart = [], updateQuantity, removeFromCart, clearCart }) {
+  const [orderStatus, setOrderStatus] = useState(null); // { type: "success"|"error", message }
+  const [placing, setPlacing] = useState(false);
+
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+
+    setPlacing(true);
+    setOrderStatus(null);
+
+    const items = cart.map((item) => ({
+      productId: getItemId(item),
+      quantity: item.quantity,
+    }));
+
+    try {
+      const response = await fetch(API_ORDERS_URL, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ items }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Order failed (HTTP ${response.status})`);
+      }
+
+      setOrderStatus({ type: "success", message: data.message || "Order placed successfully!" });
+      if (clearCart) clearCart();
+    } catch (err) {
+      setOrderStatus({
+        type: "error",
+        message: err.message.includes("Failed to fetch")
+          ? "Cannot connect to backend server. Please ensure it is running."
+          : err.message,
+      });
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   return (
     <div className="page">
@@ -18,7 +60,18 @@ function Cart({ cart = [], updateQuantity, removeFromCart, clearCart }) {
         <h2 className="cart-title">Shopping Cart ({totalItems})</h2>
       </div>
 
-      {cart.length === 0 ? (
+      {orderStatus && (
+        <div
+          className={`alert ${
+            orderStatus.type === "success" ? "alert-success" : "alert-error"
+          }`}
+          style={{ marginBottom: "16px" }}
+        >
+          <span>{orderStatus.message}</span>
+        </div>
+      )}
+
+      {cart.length === 0 && !orderStatus ? (
         <div className="status-container">
           <p className="status-title">Your Cart is Empty</p>
           <p className="status-text">
@@ -108,11 +161,10 @@ function Cart({ cart = [], updateQuantity, removeFromCart, clearCart }) {
 
             <button
               className="checkout-btn"
-              onClick={() =>
-                alert("Thank you for your order! Checkout simulation complete.")
-              }
+              onClick={handleCheckout}
+              disabled={placing}
             >
-              Proceed to Checkout
+              {placing ? "Placing Order..." : "Proceed to Checkout"}
             </button>
 
             {clearCart && (

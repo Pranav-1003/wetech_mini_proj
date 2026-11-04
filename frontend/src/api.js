@@ -2,6 +2,7 @@ export const API_BASE = "http://localhost:3000";
 export const API_PRODUCTS_URL = "http://localhost:3000/api/products";
 export const API_USERS_URL = "http://localhost:3000/api/users";
 export const API_LOGIN_URL = "http://localhost:3000/api/login";
+export const API_ORDERS_URL = "http://localhost:3000/api/orders";
 
 export const API_BASE_URL = API_PRODUCTS_URL;
 export const DEFAULT_IMAGE = "https://static.thenounproject.com/png/1077596-200.png";

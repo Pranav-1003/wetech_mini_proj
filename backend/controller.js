@@ -204,6 +204,59 @@ app.put(["/api/products/:productId", "/products/:productId"], async (req, res) =
   }
 });
 
+// Place an order: decrement product quantities for each cart item
+app.post(["/api/orders", "/orders"], verifyAuth, async (req, res) => {
+  try {
+    const { items } = req.body; // items: [{ productId, quantity }]
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "Order must contain at least one item." });
+    }
+
+    // Validate all items first before making any changes
+    const updates = [];
+    for (const item of items) {
+      if (!item.productId || !item.quantity || item.quantity < 1) {
+        return res.status(400).json({
+          message: `Invalid item: each item must have a productId and a quantity >= 1.`,
+        });
+      }
+
+      const product = await Product.findOne({ productId: item.productId });
+      if (!product) {
+        return res.status(404).json({
+          message: `Product "${item.productId}" not found.`,
+        });
+      }
+
+      if (product.quantity < item.quantity) {
+        return res.status(400).json({
+          message: `Insufficient stock for "${product.productName}" (ID: ${item.productId}). Available: ${product.quantity}, Requested: ${item.quantity}.`,
+        });
+      }
+
+      updates.push({ product, orderedQty: item.quantity });
+    }
+
+    // All validations passed — apply the quantity decrements
+    for (const { product, orderedQty } of updates) {
+      product.quantity -= orderedQty;
+      await product.save();
+    }
+
+    res.json({
+      message: "Order placed successfully! Product quantities have been updated.",
+      updatedProducts: updates.map(({ product }) => ({
+        productId: product.productId,
+        productName: product.productName,
+        remainingQuantity: product.quantity,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to place order", error: err.message });
+  }
+});
+
 app.delete(["/api/products/:productId", "/products/:productId"], async (req, res) => {
   try {
     const result = await Product.deleteOne({ productId: req.params.productId });
