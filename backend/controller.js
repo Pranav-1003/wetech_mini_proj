@@ -4,12 +4,14 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const Product = require("./products");
 const User = require("./users");
 const Reservation = require("./reservations");
 
 const app = express();
 const PORT = 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "webtech_mini_proj_jwt_secret_key_2026_secure";
 
 app.use(cors());
 app.use(express.json());
@@ -25,25 +27,45 @@ app.listen(PORT, () => {
 
 const verifyAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const email = req.headers["x-user-email"] || (authHeader && authHeader.split(" ")[1]);
+  const token = authHeader && authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader || req.headers["x-user-email"];
 
-  if (!email) {
+  if (!token) {
     return res.status(401).json({ message: "Unauthorized. Please log in first." });
   }
 
-  let userEmail = email;
   try {
-    const decoded = Buffer.from(email, "base64").toString("utf-8");
-    if (decoded.includes("@")) userEmail = decoded;
-  } catch { }
+    // 1. Verify cryptographic JWT signature and expiration
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = (decoded.userId ? await User.findById(decoded.userId) : null) ||
+                 (decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
 
-  const user = await User.findOne({ emailId: userEmail.toLowerCase().trim() });
-  if (!user) {
-    return res.status(401).json({ message: "Invalid user authentication." });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user authentication token." });
+    }
+
+    req.user = user;
+    return next();
+  } catch (jwtErr) {
+    if (jwtErr.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Authentication token expired. Please log in again." });
+    }
+
+    // 2. Fallback for backwards compatibility with any existing session tokens
+    try {
+      let fallbackEmail = token;
+      const decodedBuf = Buffer.from(token, "base64").toString("utf-8");
+      if (decodedBuf.includes("@")) fallbackEmail = decodedBuf;
+      const legacyUser = await User.findOne({ emailId: fallbackEmail.toLowerCase().trim() });
+      if (legacyUser) {
+        req.user = legacyUser;
+        return next();
+      }
+    } catch { }
+
+    return res.status(401).json({ message: "Invalid authentication token." });
   }
-
-  req.user = user;
-  next();
 };
 
 app.post(["/api/users", "/users"], async (req, res) => {
@@ -66,8 +88,20 @@ app.post(["/api/users", "/users"], async (req, res) => {
       password: String(password),
     });
 
+    // Generate real JWT token upon registration
+    const token = jwt.sign(
+      {
+        userId: newUser._id,
+        emailId: newUser.emailId,
+        username: newUser.username,
+      },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
     res.status(201).json({
       message: `Successfully registered! Welcome, ${newUser.username}.`,
+      token,
       user: { username: newUser.username, emailId: newUser.emailId, age: newUser.age },
     });
   } catch (err) {
@@ -91,7 +125,17 @@ app.post(["/api/login", "/login"], async (req, res) => {
       return res.status(401).json({ message: "Invalid Password." });
     }
 
-    const token = Buffer.from(user.emailId).toString("base64");
+    // Generate real, cryptographically signed JWT token with 24-hour expiration
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        emailId: user.emailId,
+        username: user.username,
+      },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
     res.json({
       message: "Login successful!",
       token,

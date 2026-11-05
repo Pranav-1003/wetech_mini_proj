@@ -2,10 +2,12 @@ const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const mongoose = require("mongoose");
+const jwt = require("jsonwebtoken");
 const Product = require("./products");
 const User = require("./users");
 const Reservation = require("./reservations");
 
+const JWT_SECRET = process.env.JWT_SECRET || "webtech_mini_proj_jwt_secret_key_2026_secure";
 const MONGO_URI = "mongodb+srv://pranav03102007_db_user:PranavPrakasH10@cluster0.ki5fijl.mongodb.net/lab8";
 
 async function runTests() {
@@ -347,6 +349,47 @@ async function runTests() {
     assert(doubleCompleteFailed, "Double completion prevented");
     const prodAfter = await Product.findOne({ productId: "TEST_P1" });
     assert(prodAfter.quantity === stockBefore - 2, `Stock did NOT decrease twice; remains at ${prodAfter.quantity}`);
+    console.log();
+
+    // -------------------------------------------------------------------------
+    // SCENARIO 9: JWT Authentication and Token Security Verification
+    // -------------------------------------------------------------------------
+    console.log("TEST 9: JWT Authentication and Token Security Verification");
+    // 1. Generate valid JWT
+    const validToken = jwt.sign(
+      { userId: userA._id, emailId: userA.emailId, username: userA.username },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+    const decodedValid = jwt.verify(validToken, JWT_SECRET);
+    assert(decodedValid && decodedValid.userId.toString() === userA._id.toString(), "Valid JWT successfully signed and verified with correct payload");
+    assert(decodedValid.exp > Math.floor(Date.now() / 1000), "JWT has valid future expiration timestamp");
+
+    // 2. Reject tampered token
+    let tamperedRejected = false;
+    try {
+      const tamperedToken = validToken.slice(0, -6) + "xxxxxx";
+      jwt.verify(tamperedToken, JWT_SECRET);
+    } catch (err) {
+      tamperedRejected = true;
+      assert(err.name === "JsonWebTokenError", "Tampered JWT token rejected with JsonWebTokenError (signature invalid)");
+    }
+    assert(tamperedRejected, "Tampered JWT rejected successfully");
+
+    // 3. Reject expired token
+    let expiredTokenRejected = false;
+    try {
+      const expiredJwt = jwt.sign(
+        { userId: userA._id, emailId: userA.emailId },
+        JWT_SECRET,
+        { expiresIn: "-1s" } // already expired
+      );
+      jwt.verify(expiredJwt, JWT_SECRET);
+    } catch (err) {
+      expiredTokenRejected = true;
+      assert(err.name === "TokenExpiredError", "Expired JWT token rejected with TokenExpiredError");
+    }
+    assert(expiredTokenRejected, "Expired JWT rejected successfully");
     console.log();
 
     // Clean up test data
