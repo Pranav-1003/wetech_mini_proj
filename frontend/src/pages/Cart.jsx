@@ -53,7 +53,7 @@ function Cart({
     isOpen: false,
     originalProduct: null,
     suggestedProduct: null,
-    removeProductIds: [],
+    removeQuantities: {}, // { [productId]: numberToExcludeFromCart }
     addProduct: null,
     saving: false,
   });
@@ -225,11 +225,18 @@ function Cart({
     const maxStock = Number(suggestion.availableStock !== undefined ? suggestion.availableStock : 99);
     const initialQty = Math.min(Number(originalProduct.quantity || 1), maxStock > 0 ? maxStock : 1) || 1;
 
+    // Initialize removeQuantities: target product defaults to its full cart quantity, others to 0
+    const initialRemoveQuantities = {};
+    cart.forEach((item) => {
+      const pId = getItemId(item);
+      initialRemoveQuantities[pId] = pId === origId ? Number(item.quantity || 1) : 0;
+    });
+
     setReplacementModal({
       isOpen: true,
       originalProduct,
       suggestedProduct: suggestion,
-      removeProductIds: [origId], // By default, select the original product to be removed
+      removeQuantities: initialRemoveQuantities,
       addProduct: {
         productId: sugId,
         name: suggestion.name || suggestion.productName || "Product",
@@ -253,14 +260,29 @@ function Cart({
     }));
   };
 
-  const toggleItemRemoval = (productId) => {
+  const toggleItemRemoval = (productId, totalCartQty) => {
     setReplacementModal((prev) => {
-      const exists = prev.removeProductIds.includes(productId);
+      const currentQty = prev.removeQuantities[productId] || 0;
       return {
         ...prev,
-        removeProductIds: exists
-          ? prev.removeProductIds.filter((id) => id !== productId)
-          : [...prev.removeProductIds, productId],
+        removeQuantities: {
+          ...prev.removeQuantities,
+          [productId]: currentQty > 0 ? 0 : totalCartQty,
+        },
+      };
+    });
+  };
+
+  const changeRemoveQuantity = (productId, delta, maxQty) => {
+    setReplacementModal((prev) => {
+      const current = prev.removeQuantities[productId] || 0;
+      const next = Math.max(0, Math.min(maxQty, current + delta));
+      return {
+        ...prev,
+        removeQuantities: {
+          ...prev.removeQuantities,
+          [productId]: next,
+        },
       };
     });
   };
@@ -294,21 +316,36 @@ function Cart({
   const handleSaveReplacement = async () => {
     if (!replacementModal.isOpen) return;
 
-    const { removeProductIds, addProduct } = replacementModal;
+    const { removeQuantities, addProduct } = replacementModal;
+
+    const totalUnitsRemoved = Object.values(removeQuantities).reduce((sum, q) => sum + (q || 0), 0);
+    const willAdd = addProduct && addProduct.checked && addProduct.quantity > 0;
 
     // Validation: make sure at least one action is selected
-    if (removeProductIds.length === 0 && (!addProduct || !addProduct.checked)) {
-      alert("No changes selected. Please select at least one product to remove or add, or click Cancel.");
+    if (totalUnitsRemoved === 0 && !willAdd) {
+      alert("No changes selected. Please select at least one product quantity to remove or add, or click Cancel.");
       return;
     }
 
     setReplacementModal((prev) => ({ ...prev, saving: true }));
 
-    // 1. Construct the new cart based on user selections
-    let updatedCart = cart.filter((item) => !removeProductIds.includes(getItemId(item)));
+    // 1. Construct the new cart based on dynamic remove quantities
+    let updatedCart = [];
+    cart.forEach((item) => {
+      const pId = getItemId(item);
+      const toRemove = Math.min(item.quantity, Math.max(0, removeQuantities[pId] || 0));
+      const remainingQty = item.quantity - toRemove;
+
+      if (remainingQty > 0) {
+        updatedCart.push({
+          ...item,
+          quantity: remainingQty,
+        });
+      }
+    });
 
     // 2. If addProduct is checked, add it to updatedCart
-    if (addProduct && addProduct.checked && addProduct.quantity > 0) {
+    if (willAdd) {
       const existingIdx = updatedCart.findIndex(
         (item) => String(getItemId(item)) === String(addProduct.productId)
       );
@@ -376,15 +413,13 @@ function Cart({
     }
 
     // 5. Provide feedback to the user
-    const removedCount = removeProductIds.length;
-    const addedName = addProduct && addProduct.checked ? addProduct.name : null;
     let msg = "Cart updated successfully!";
-    if (removedCount > 0 && addedName) {
-      msg = `Cart updated! Removed ${removedCount} product(s) and added ${addProduct.quantity}x '${addedName}'.`;
-    } else if (removedCount > 0) {
-      msg = `Cart updated! Removed ${removedCount} product(s).`;
-    } else if (addedName) {
-      msg = `Cart updated! Added ${addProduct.quantity}x '${addedName}'.`;
+    if (totalUnitsRemoved > 0 && willAdd) {
+      msg = `Cart updated! Removed ${totalUnitsRemoved} unit(s) and added ${addProduct.quantity}x '${addProduct.name}'.`;
+    } else if (totalUnitsRemoved > 0) {
+      msg = `Cart updated! Removed ${totalUnitsRemoved} unit(s).`;
+    } else if (willAdd) {
+      msg = `Cart updated! Added ${addProduct.quantity}x '${addProduct.name}'.`;
     }
 
     setActionNotice({ type: "success", message: msg });
@@ -874,20 +909,25 @@ function Cart({
 
                 {cart.map((item) => {
                   const pId = getItemId(item);
-                  const isChecked = replacementModal.removeProductIds.includes(pId);
+                  const itemQty = Number(item.quantity || 1);
+                  const removeQty = Math.min(
+                    itemQty,
+                    Math.max(0, replacementModal.removeQuantities[pId] || 0)
+                  );
+                  const isChecked = removeQty > 0;
                   const isOriginal =
                     replacementModal.originalProduct &&
                     getItemId(replacementModal.originalProduct) === pId;
                   const itemTitle = item.name || item.productName || "Product";
                   const itemPrice = Number(item.price || item.productPrice || 0);
-                  const itemQty = Number(item.quantity || 1);
-                  const subtotal = itemPrice * itemQty;
+                  const subtotalRemoved = itemPrice * removeQty;
+                  const remainingQty = itemQty - removeQty;
 
                   return (
                     <div
                       key={pId}
                       className={`modal-item-card ${isChecked ? "selected-remove" : ""}`}
-                      onClick={() => toggleItemRemoval(pId)}
+                      onClick={() => toggleItemRemoval(pId, itemQty)}
                     >
                       <input
                         type="checkbox"
@@ -910,18 +950,56 @@ function Cart({
                           {isOriginal && (
                             <span className="badge-tag-remove">Target of Suggestion</span>
                           )}
-                          {!isChecked && (
-                            <span className="badge-tag-keep">Will Keep</span>
+                          {removeQty > 0 && removeQty < itemQty && (
+                            <span
+                              className="badge-tag-remove"
+                              style={{ background: "#fef3c7", color: "#92400e" }}
+                            >
+                              Remove {removeQty} &bull; Keep {remainingQty}
+                            </span>
+                          )}
+                          {removeQty === itemQty && (
+                            <span className="badge-tag-remove">Remove all ({itemQty})</span>
+                          )}
+                          {removeQty === 0 && (
+                            <span className="badge-tag-keep">Keep all ({itemQty})</span>
                           )}
                         </div>
                       </div>
-                      <div className="modal-item-price-col">
-                        <span className="modal-item-price">${subtotal.toFixed(2)}</span>
+                      <div className="modal-item-price-col" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-qty-controls">
+                          <button
+                            type="button"
+                            className="modal-qty-btn"
+                            onClick={() => changeRemoveQuantity(pId, -1, itemQty)}
+                            disabled={removeQty <= 0}
+                            aria-label="Decrease quantity to remove"
+                          >
+                            -
+                          </button>
+                          <span
+                            className="modal-qty-value"
+                            title={`Removing ${removeQty} of ${itemQty}`}
+                          >
+                            {removeQty}
+                          </span>
+                          <button
+                            type="button"
+                            className="modal-qty-btn"
+                            onClick={() => changeRemoveQuantity(pId, 1, itemQty)}
+                            disabled={removeQty >= itemQty}
+                            aria-label="Increase quantity to remove"
+                          >
+                            +
+                          </button>
+                        </div>
                         <div className="modal-item-subtotal">
-                          {isChecked ? (
-                            <span style={{ color: "#dc2626", fontWeight: "600" }}>Will Remove</span>
+                          {removeQty > 0 ? (
+                            <strong style={{ color: "#dc2626" }}>
+                              -${subtotalRemoved.toFixed(2)}
+                            </strong>
                           ) : (
-                            <span>Keep in Cart</span>
+                            <span style={{ color: "#15803d", fontWeight: "600" }}>Keep All</span>
                           )}
                         </div>
                       </div>
@@ -1014,13 +1092,15 @@ function Cart({
 
               {/* Section 3: Summary / Preview */}
               {(() => {
-                const removedValue = cart
-                  .filter((item) => replacementModal.removeProductIds.includes(getItemId(item)))
-                  .reduce(
-                    (sum, item) =>
-                      sum + Number(item.price || item.productPrice || 0) * (item.quantity || 1),
-                    0
-                  );
+                const removedValue = cart.reduce((sum, item) => {
+                  const pId = getItemId(item);
+                  const q = replacementModal.removeQuantities[pId] || 0;
+                  return sum + Number(item.price || item.productPrice || 0) * q;
+                }, 0);
+                const totalUnitsRemoved = Object.values(replacementModal.removeQuantities).reduce(
+                  (sum, q) => sum + (q || 0),
+                  0
+                );
                 const addedValue =
                   replacementModal.addProduct && replacementModal.addProduct.checked
                     ? replacementModal.addProduct.price * replacementModal.addProduct.quantity
@@ -1035,11 +1115,19 @@ function Cart({
                       <span>${frontendTotal.toFixed(2)}</span>
                     </div>
                     <div className="modal-summary-row" style={{ color: "#dc2626" }}>
-                      <span>- Items Removed ({replacementModal.removeProductIds.length}):</span>
+                      <span>- Items Removed ({totalUnitsRemoved} unit{totalUnitsRemoved === 1 ? "" : "s"}):</span>
                       <span>-${removedValue.toFixed(2)}</span>
                     </div>
                     <div className="modal-summary-row" style={{ color: "#15803d" }}>
-                      <span>+ Items Added ({replacementModal.addProduct?.checked ? 1 : 0}):</span>
+                      <span>
+                        + Items Added (
+                        {replacementModal.addProduct?.checked
+                          ? `${replacementModal.addProduct.quantity} unit${
+                              replacementModal.addProduct.quantity === 1 ? "" : "s"
+                            }`
+                          : "0 units"}
+                        ):
+                      </span>
                       <span>+${addedValue.toFixed(2)}</span>
                     </div>
                     <div className="modal-summary-total">
