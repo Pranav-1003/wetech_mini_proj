@@ -36,6 +36,9 @@ function Navbar({ currentUser, onLogout, cartCount = 0 }) {
               <Link to="/reservations" className="nav-link">
                 Reservations
               </Link>
+              <Link to="/shared-cart" className="nav-link">
+                Shared Cart
+              </Link>
               <Link to="/cart" className="nav-link cart-pill">
                 Cart ({cartCount})
               </Link>
