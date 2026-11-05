@@ -2,7 +2,16 @@ export const API_BASE = "http://localhost:3000";
 export const API_PRODUCTS_URL = "http://localhost:3000/api/products";
 export const API_USERS_URL = "http://localhost:3000/api/users";
 export const API_LOGIN_URL = "http://localhost:3000/api/login";
+<<<<<<< HEAD
 export const API_ORDERS_URL = "http://localhost:3000/api/orders";
+=======
+export const API_RESERVATIONS_URL = "http://localhost:3000/api/reservations";
+export const API_BUDGET_URL = "http://localhost:3000/api/budget";
+export const API_BUDGET_ALTERNATIVES_URL = "http://localhost:3000/api/budget/alternatives";
+export const API_CART_URL = "http://localhost:3000/api/cart";
+export const API_CART_REPLACE_URL = "http://localhost:3000/api/cart/replace";
+export const API_SHARED_CARTS_URL = "http://localhost:3000/api/shared-carts";
+>>>>>>> 9e3eec726a18ed39e86bf6abe1158e07e6b3f35d
 
 export const API_BASE_URL = API_PRODUCTS_URL;
 export const DEFAULT_IMAGE = "https://static.thenounproject.com/png/1077596-200.png";
@@ -19,6 +28,10 @@ export const PRODUCT_IMAGE_MAP = {
   P104: "/images/Smart Fitness Watch.jpeg",
   P105: "/images/Pro Running Shoes.avif",
   P106: "/images/Insulated Stainless Steel Bottle.jpeg",
+  P107: "/images/wireless bluetooth headphone.png",
+  P108: "/images/Smart Fitness Watch.jpeg",
+  P109: "/images/Pro Running Shoes.avif",
+  P110: "/images/Insulated Stainless Steel Bottle.jpeg",
 };
 
 export const getProductImage = (product) => {
@@ -39,10 +52,10 @@ export const getProductImage = (product) => {
   const name = String(product.productName || product.name || "").toLowerCase().trim();
   if (name.includes("polo") || name.includes("t-shirt")) return "/images/cotton polo t-shirt.jpg";
   if (name.includes("jeans") || name.includes("denim")) return "/images/Slim-Fit Denim Jeans.webp";
-  if (name.includes("headphone") || name.includes("bluetooth")) return "/images/wireless bluetooth headphone.png";
-  if (name.includes("watch") || name.includes("fitness")) return "/images/Smart Fitness Watch.jpeg";
-  if (name.includes("running") || name.includes("shoes")) return "/images/Pro Running Shoes.avif";
-  if (name.includes("bottle") || name.includes("steel")) return "/images/Insulated Stainless Steel Bottle.jpeg";
+  if (name.includes("headphone") || name.includes("earphone") || name.includes("bluetooth")) return "/images/wireless bluetooth headphone.png";
+  if (name.includes("watch") || name.includes("fitness") || name.includes("tracker")) return "/images/Smart Fitness Watch.jpeg";
+  if (name.includes("running") || name.includes("shoes") || name.includes("sneaker")) return "/images/Pro Running Shoes.avif";
+  if (name.includes("bottle") || name.includes("steel") || name.includes("sipper")) return "/images/Insulated Stainless Steel Bottle.jpeg";
   if (name.includes("shirt")) return "/images/casual shirt.jpeg";
   if (name.includes("pant")) return "/images/formal pant.jpeg";
 
@@ -63,5 +76,3 @@ export const getAuthHeaders = () => {
   }
   return headers;
 };
-
-export const API_RESERVATIONS_URL = "http://localhost:3000/api/reservations";

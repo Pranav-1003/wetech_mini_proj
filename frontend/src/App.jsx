@@ -10,6 +10,7 @@ import ManageProducts from "./pages/ManageProducts";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
 import MyReservations from "./pages/MyReservations";
+import SharedCart from "./pages/SharedCart";
 import { getItemId } from "./api";
 import "./App.css";
 
@@ -168,6 +169,8 @@ function App() {
           path="/cart"
           element={
             <Cart
+              currentUser={currentUser}
+              onLogout={handleLogout}
               cart={cart}
               setCart={setCart}
               updateQuantity={updateQuantity}
@@ -198,6 +201,16 @@ function App() {
               cart={cart}
             />
           }
+        />
+
+        {/* Collaborative Shopping Cart (Shared Cart) */}
+        <Route
+          path="/shared-cart"
+          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />}
+        />
+        <Route
+          path="/shared-cart/:roomCode"
+          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />}
         />
 
         {/* Fallback */}

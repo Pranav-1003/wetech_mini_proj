@@ -60,6 +60,42 @@ const sampleProducts = [
     description: "Double-walled vacuum insulated 1000ml bottle keeping beverages cold for 24 hours.",
     image: "/images/Insulated Stainless Steel Bottle.jpeg",
   },
+  {
+    productId: "P107",
+    productName: "Compact Wired Earphones",
+    productPrice: 24.99,
+    category: "Electronics",
+    quantity: 30,
+    description: "Clear audio wired in-ear earphones with tangle-free cable and built-in microphone.",
+    image: "/images/wireless bluetooth headphone.png",
+  },
+  {
+    productId: "P108",
+    productName: "Essential Activity Tracker",
+    productPrice: 39.99,
+    category: "Electronics",
+    quantity: 25,
+    description: "Slim fitness band with step counter, OLED display, and 14-day battery life.",
+    image: "/images/Smart Fitness Watch.jpeg",
+  },
+  {
+    productId: "P109",
+    productName: "Casual Canvas Sneakers",
+    productPrice: 29.99,
+    category: "Footwear",
+    quantity: 20,
+    description: "Comfortable low-top lace-up everyday canvas sneakers with cushioned footbed.",
+    image: "/images/Pro Running Shoes.avif",
+  },
+  {
+    productId: "P110",
+    productName: "Eco Reusable Water Bottle",
+    productPrice: 9.99,
+    category: "Accessories",
+    quantity: 40,
+    description: "BPA-free lightweight sports water bottle with leak-proof flip cap.",
+    image: "/images/Insulated Stainless Steel Bottle.jpeg",
+  },
 ];
 
 async function seed() {

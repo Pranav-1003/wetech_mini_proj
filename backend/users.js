@@ -1,5 +1,22 @@
 const mongoose = require("mongoose");
 
+const cartItemSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: [1, "Quantity must be at least 1"],
+      default: 1,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -23,6 +40,15 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
     },
+    budget: {
+      type: Number,
+      default: 0,
+      min: [0, "Budget cannot be negative"],
+    },
+    cart: {
+      type: [cartItemSchema],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -32,4 +58,3 @@ const userSchema = new mongoose.Schema(
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
-
