@@ -1,66 +1,13 @@
-<<<<<<< HEAD
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { getItemId, getProductImage, API_ORDERS_URL, getAuthHeaders } from "../api";
-import "../App.css";
-
-function Cart({ cart = [], updateQuantity, removeFromCart, clearCart }) {
-  const [orderStatus, setOrderStatus] = useState(null); // { type: "success"|"error", message }
-  const [placing, setPlacing] = useState(false);
-
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrice = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const handleCheckout = async () => {
-    if (cart.length === 0) return;
-
-    setPlacing(true);
-    setOrderStatus(null);
-
-    const items = cart.map((item) => ({
-      productId: getItemId(item),
-      quantity: item.quantity,
-    }));
-
-    try {
-      const response = await fetch(API_ORDERS_URL, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ items }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `Order failed (HTTP ${response.status})`);
-      }
-
-      setOrderStatus({ type: "success", message: data.message || "Order placed successfully!" });
-      if (clearCart) clearCart();
-    } catch (err) {
-      setOrderStatus({
-        type: "error",
-        message: err.message.includes("Failed to fetch")
-          ? "Cannot connect to backend server. Please ensure it is running."
-          : err.message,
-      });
-    } finally {
-      setPlacing(false);
-    }
-  };
-
-=======
 import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   getItemId,
   getProductImage,
   getAuthHeaders,
+  API_ORDERS_URL,
   API_BUDGET_URL,
   API_BUDGET_ALTERNATIVES_URL,
+  API_CART_URL,
   API_CART_REPLACE_URL,
 } from "../api";
 import Navbar from "../components/Navbar";
@@ -76,6 +23,10 @@ function Cart({
   clearCart,
 }) {
   const navigate = useNavigate();
+
+  // Order & Checkout States
+  const [orderStatus, setOrderStatus] = useState(null); // { type: "success"|"error", message }
+  const [placing, setPlacing] = useState(false);
 
   // Budget States
   const [budget, setBudget] = useState(0);
@@ -97,11 +48,59 @@ function Cart({
   const [replacingId, setReplacingId] = useState(null);
   const [actionNotice, setActionNotice] = useState(null);
 
+  // Interactive Replacement Customization Modal State
+  const [replacementModal, setReplacementModal] = useState({
+    isOpen: false,
+    originalProduct: null,
+    suggestedProduct: null,
+    removeProductIds: [],
+    addProduct: null,
+    saving: false,
+  });
+
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const frontendTotal = cart.reduce(
     (sum, item) => sum + Number(item.price || item.productPrice || 0) * (item.quantity || 1),
     0
   );
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+
+    setPlacing(true);
+    setOrderStatus(null);
+
+    const items = cart.map((item) => ({
+      productId: getItemId(item),
+      quantity: item.quantity || 1,
+    }));
+
+    try {
+      const response = await fetch(API_ORDERS_URL, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ items }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `Order failed (HTTP ${response.status})`);
+      }
+
+      setOrderStatus({ type: "success", message: data.message || "Order placed successfully! Product quantities updated." });
+      if (clearCart) clearCart();
+    } catch (err) {
+      setOrderStatus({
+        type: "error",
+        message: err.message.includes("Failed to fetch")
+          ? "Cannot connect to backend server. Please ensure it is running."
+          : err.message,
+      });
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   // 1. Fetch User's Persisted Budget from MongoDB on Mount
   const fetchBudget = useCallback(async () => {
@@ -219,60 +218,183 @@ function Cart({
     }
   };
 
-  // 4. Replace Product Handler
-  const handleReplaceProduct = async (originalProduct, suggestion) => {
+  // 4. Replacement Modal Handlers
+  const openReplacementModal = (originalProduct, suggestion) => {
     const origId = getItemId(originalProduct);
-    const repId = suggestion.productId;
+    const sugId = getItemId(suggestion);
+    const maxStock = Number(suggestion.availableStock !== undefined ? suggestion.availableStock : 99);
+    const initialQty = Math.min(Number(originalProduct.quantity || 1), maxStock > 0 ? maxStock : 1) || 1;
 
-    setReplacingId(repId);
-    setActionNotice(null);
+    setReplacementModal({
+      isOpen: true,
+      originalProduct,
+      suggestedProduct: suggestion,
+      removeProductIds: [origId], // By default, select the original product to be removed
+      addProduct: {
+        productId: sugId,
+        name: suggestion.name || suggestion.productName || "Product",
+        price: Number(suggestion.price || suggestion.productPrice || 0),
+        image: suggestion.image,
+        category: suggestion.category,
+        quantity: initialQty,
+        checked: true, // By default, select to add
+        maxStock,
+        savings: Number(suggestion.savings || 0),
+      },
+      saving: false,
+    });
+  };
 
-    try {
-      const res = await fetch(API_CART_REPLACE_URL, {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          originalProductId: origId,
-          replacementProductId: repId,
-          cart: cart.map((i) => ({ productId: getItemId(i), quantity: i.quantity || 1 })),
-        }),
-      });
+  const closeReplacementModal = () => {
+    setReplacementModal((prev) => ({
+      ...prev,
+      isOpen: false,
+      saving: false,
+    }));
+  };
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setActionNotice({ type: "error", message: data.message || "Failed to replace product." });
-        setReplacingId(null);
-        return;
-      }
-
-      // Update cart state in React & LocalStorage
-      if (setCart && Array.isArray(data.cart)) {
-        setCart(data.cart);
-        localStorage.setItem("lab8_cart", JSON.stringify(data.cart));
-      }
-
-      setActionNotice({
-        type: "success",
-        message: `Successfully replaced '${originalProduct.name || originalProduct.productName}' with '${suggestion.name || suggestion.productName}'. You saved $${(suggestion.totalSavings || suggestion.savings).toFixed(2)}!`,
-      });
-
-      // Update evaluation state immediately from authoritative backend response
-      setEvaluation((prev) => ({
+  const toggleItemRemoval = (productId) => {
+    setReplacementModal((prev) => {
+      const exists = prev.removeProductIds.includes(productId);
+      return {
         ...prev,
-        cartTotal: data.cartTotal,
-        remainingBudget: data.remainingBudget,
-        exceededAmount: data.exceededAmount,
-        isExceeded: data.isExceeded,
-      }));
+        removeProductIds: exists
+          ? prev.removeProductIds.filter((id) => id !== productId)
+          : [...prev.removeProductIds, productId],
+      };
+    });
+  };
 
-      setTimeout(() => setActionNotice(null), 4000);
-    } catch (err) {
-      console.error("Replacement error:", err);
-      setActionNotice({ type: "error", message: "Network error while replacing product." });
-    } finally {
-      setReplacingId(null);
+  const toggleAddProduct = () => {
+    setReplacementModal((prev) => ({
+      ...prev,
+      addProduct: {
+        ...prev.addProduct,
+        checked: !prev.addProduct.checked,
+      },
+    }));
+  };
+
+  const changeAddQuantity = (delta) => {
+    setReplacementModal((prev) => {
+      if (!prev.addProduct) return prev;
+      const current = prev.addProduct.quantity;
+      const max = prev.addProduct.maxStock || 99;
+      const next = Math.max(1, Math.min(max, current + delta));
+      return {
+        ...prev,
+        addProduct: {
+          ...prev.addProduct,
+          quantity: next,
+        },
+      };
+    });
+  };
+
+  const handleSaveReplacement = async () => {
+    if (!replacementModal.isOpen) return;
+
+    const { removeProductIds, addProduct } = replacementModal;
+
+    // Validation: make sure at least one action is selected
+    if (removeProductIds.length === 0 && (!addProduct || !addProduct.checked)) {
+      alert("No changes selected. Please select at least one product to remove or add, or click Cancel.");
+      return;
     }
+
+    setReplacementModal((prev) => ({ ...prev, saving: true }));
+
+    // 1. Construct the new cart based on user selections
+    let updatedCart = cart.filter((item) => !removeProductIds.includes(getItemId(item)));
+
+    // 2. If addProduct is checked, add it to updatedCart
+    if (addProduct && addProduct.checked && addProduct.quantity > 0) {
+      const existingIdx = updatedCart.findIndex(
+        (item) => String(getItemId(item)) === String(addProduct.productId)
+      );
+
+      if (existingIdx !== -1) {
+        updatedCart = updatedCart.map((item, idx) =>
+          idx === existingIdx
+            ? { ...item, quantity: (item.quantity || 1) + addProduct.quantity }
+            : item
+        );
+      } else {
+        updatedCart.push({
+          productId: addProduct.productId,
+          name: addProduct.name,
+          productName: addProduct.name,
+          price: addProduct.price,
+          productPrice: addProduct.price,
+          quantity: addProduct.quantity,
+          category: addProduct.category,
+          image: addProduct.image,
+        });
+      }
+    }
+
+    // 3. Update React state and localStorage immediately
+    if (setCart) {
+      setCart(updatedCart);
+    }
+    localStorage.setItem("lab8_cart", JSON.stringify(updatedCart));
+
+    // 4. Synchronize with backend API (/api/cart)
+    try {
+      const token = localStorage.getItem("lab8_token");
+      if (token) {
+        const payloadCart = updatedCart.map((item) => ({
+          productId: getItemId(item),
+          quantity: Number(item.quantity || 1),
+        }));
+
+        const res = await fetch(API_CART_URL, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ cart: payloadCart }),
+        });
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data && Array.isArray(data.cart) && setCart) {
+            setCart(data.cart);
+            localStorage.setItem("lab8_cart", JSON.stringify(data.cart));
+          }
+          if (data && data.cartTotal !== undefined) {
+            setEvaluation((prev) => ({
+              ...prev,
+              cartTotal: data.cartTotal,
+              remainingBudget: data.remainingBudget,
+              exceededAmount: data.exceededAmount,
+              isExceeded: data.isExceeded,
+            }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Cart sync error:", err);
+    }
+
+    // 5. Provide feedback to the user
+    const removedCount = removeProductIds.length;
+    const addedName = addProduct && addProduct.checked ? addProduct.name : null;
+    let msg = "Cart updated successfully!";
+    if (removedCount > 0 && addedName) {
+      msg = `Cart updated! Removed ${removedCount} product(s) and added ${addProduct.quantity}x '${addedName}'.`;
+    } else if (removedCount > 0) {
+      msg = `Cart updated! Removed ${removedCount} product(s).`;
+    } else if (addedName) {
+      msg = `Cart updated! Added ${addProduct.quantity}x '${addedName}'.`;
+    }
+
+    setActionNotice({ type: "success", message: msg });
+    setTimeout(() => setActionNotice(null), 5000);
+
+    // 6. Close the modal
+    closeReplacementModal();
+
+    // 7. Re-evaluate alternatives with new cart
+    evaluateBudgetAndAlternatives(updatedCart);
   };
 
   // Calculations for display
@@ -286,41 +408,30 @@ function Cart({
   const progressColor =
     progressPercent > 100 || isExceeded ? "#dc2626" : progressPercent >= 80 ? "#d97706" : "#16a34a";
 
->>>>>>> 9e3eec726a18ed39e86bf6abe1158e07e6b3f35d
   return (
     <div className="page-wrapper">
       <Navbar currentUser={currentUser} onLogout={onLogout} cartCount={totalItems} />
 
-<<<<<<< HEAD
-      {orderStatus && (
-        <div
-          className={`alert ${
-            orderStatus.type === "success" ? "alert-success" : "alert-error"
-          }`}
-          style={{ marginBottom: "16px" }}
-        >
-          <span>{orderStatus.message}</span>
-        </div>
-      )}
-
-      {cart.length === 0 && !orderStatus ? (
-        <div className="status-container">
-          <p className="status-title">Your Cart is Empty</p>
-          <p className="status-text">
-            Looks like you haven't added any products to your cart yet.
-          </p>
-          <Link to="/" className="btn-primary">
-            Explore Products
-=======
       <main className="content-container">
         {/* Cart Page Header */}
         <div className="cart-header">
           <Link to="/products" className="back-btn">
             &larr; Continue Shopping
->>>>>>> 9e3eec726a18ed39e86bf6abe1158e07e6b3f35d
           </Link>
           <h2 className="cart-title">Shopping Cart ({totalItems} items)</h2>
         </div>
+
+        {/* Order Status Feedback */}
+        {orderStatus && (
+          <div
+            className={`alert ${
+              orderStatus.type === "success" ? "alert-success" : "alert-error"
+            }`}
+            style={{ marginBottom: "20px" }}
+          >
+            <span>{orderStatus.message}</span>
+          </div>
+        )}
 
         {/* Global Action / Feedback Toast */}
         {actionNotice && (
@@ -512,20 +623,10 @@ function Cart({
                             </span>
                           </div>
 
-<<<<<<< HEAD
-            <button
-              className="checkout-btn"
-              onClick={handleCheckout}
-              disabled={placing}
-            >
-              {placing ? "Placing Order..." : "Proceed to Checkout"}
-            </button>
-=======
                           {/* Suggested Alternatives Grid */}
                           <div className="suggestions-grid">
                             {item.suggestions.map((sug) => {
                               const isReplacing = replacingId === sug.productId;
->>>>>>> 9e3eec726a18ed39e86bf6abe1158e07e6b3f35d
 
                               return (
                                 <div key={sug.productId} className="suggestion-card">
@@ -565,10 +666,9 @@ function Cart({
                                     <button
                                       type="button"
                                       className="btn-replace-product"
-                                      onClick={() => handleReplaceProduct(orig, sug)}
-                                      disabled={isReplacing}
+                                      onClick={() => openReplacementModal(orig, sug)}
                                     >
-                                      {isReplacing ? "Replacing..." : "Replace Product"}
+                                      Replace Product
                                     </button>
                                   </div>
                                 </div>
@@ -688,9 +788,10 @@ function Cart({
 
                 <button
                   className="checkout-btn"
-                  onClick={() => alert("Thank you for your order! Checkout simulation complete.")}
+                  onClick={handleCheckout}
+                  disabled={placing}
                 >
-                  Proceed to Checkout
+                  {placing ? "Placing Order..." : "Proceed to Checkout"}
                 </button>
 
                 {clearCart && (
@@ -737,6 +838,259 @@ function Cart({
           </>
         )}
       </main>
+
+      {/* Interactive Replacement Customization Modal */}
+      {replacementModal.isOpen && (
+        <div className="modal-backdrop" onClick={closeReplacementModal}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Customize Product Replacement</h3>
+                <p className="modal-subtitle">
+                  Select which product(s) to remove and which to add. Your cart will only be updated when you click <strong>Save Changes</strong>.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={closeReplacementModal}
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="modal-body">
+              {/* Section 1: Products to remove */}
+              <div className="modal-section">
+                <div className="modal-section-title">
+                  <span>1. Products to Remove from Cart</span>
+                </div>
+                <p className="modal-section-hint">
+                  Select the item(s) you wish to remove. Unchecked items will remain safely in your cart.
+                </p>
+
+                {cart.map((item) => {
+                  const pId = getItemId(item);
+                  const isChecked = replacementModal.removeProductIds.includes(pId);
+                  const isOriginal =
+                    replacementModal.originalProduct &&
+                    getItemId(replacementModal.originalProduct) === pId;
+                  const itemTitle = item.name || item.productName || "Product";
+                  const itemPrice = Number(item.price || item.productPrice || 0);
+                  const itemQty = Number(item.quantity || 1);
+                  const subtotal = itemPrice * itemQty;
+
+                  return (
+                    <div
+                      key={pId}
+                      className={`modal-item-card ${isChecked ? "selected-remove" : ""}`}
+                      onClick={() => toggleItemRemoval(pId)}
+                    >
+                      <input
+                        type="checkbox"
+                        className="modal-checkbox danger-check"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        aria-label={`Remove ${itemTitle}`}
+                      />
+                      <img
+                        src={getProductImage(item)}
+                        alt={itemTitle}
+                        className="modal-thumb"
+                      />
+                      <div className="modal-item-info">
+                        <p className="modal-item-name">{itemTitle}</p>
+                        <div className="modal-item-meta">
+                          <span>${itemPrice.toFixed(2)} each</span>
+                          <span>&bull;</span>
+                          <span>In Cart: {itemQty}</span>
+                          {isOriginal && (
+                            <span className="badge-tag-remove">Target of Suggestion</span>
+                          )}
+                          {!isChecked && (
+                            <span className="badge-tag-keep">Will Keep</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="modal-item-price-col">
+                        <span className="modal-item-price">${subtotal.toFixed(2)}</span>
+                        <div className="modal-item-subtotal">
+                          {isChecked ? (
+                            <span style={{ color: "#dc2626", fontWeight: "600" }}>Will Remove</span>
+                          ) : (
+                            <span>Keep in Cart</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Section 2: Products to add */}
+              <div className="modal-section">
+                <div className="modal-section-title">
+                  <span>2. Product to Add to Cart</span>
+                </div>
+                <p className="modal-section-hint">
+                  Confirm the replacement product and quantity to add to your cart.
+                </p>
+
+                {replacementModal.addProduct && (
+                  <div
+                    className={`modal-item-card ${
+                      replacementModal.addProduct.checked ? "selected-add" : ""
+                    }`}
+                    onClick={toggleAddProduct}
+                  >
+                    <input
+                      type="checkbox"
+                      className="modal-checkbox"
+                      checked={replacementModal.addProduct.checked}
+                      onChange={() => {}}
+                      aria-label={`Add ${replacementModal.addProduct.name}`}
+                    />
+                    <img
+                      src={getProductImage(replacementModal.addProduct)}
+                      alt={replacementModal.addProduct.name}
+                      className="modal-thumb"
+                    />
+                    <div className="modal-item-info">
+                      <p className="modal-item-name">{replacementModal.addProduct.name}</p>
+                      <div className="modal-item-meta">
+                        <span>${replacementModal.addProduct.price.toFixed(2)} each</span>
+                        {replacementModal.addProduct.savings > 0 && (
+                          <span className="badge-tag-add">
+                            Save ${replacementModal.addProduct.savings.toFixed(2)} each
+                          </span>
+                        )}
+                        <span>&bull;</span>
+                        <span style={{ color: "#15803d" }}>In Stock</span>
+                      </div>
+                    </div>
+                    <div className="modal-item-price-col" onClick={(e) => e.stopPropagation()}>
+                      <div className="modal-qty-controls">
+                        <button
+                          type="button"
+                          className="modal-qty-btn"
+                          onClick={() => changeAddQuantity(-1)}
+                          disabled={replacementModal.addProduct.quantity <= 1}
+                          aria-label="Decrease quantity"
+                        >
+                          -
+                        </button>
+                        <span className="modal-qty-value">
+                          {replacementModal.addProduct.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          className="modal-qty-btn"
+                          onClick={() => changeAddQuantity(1)}
+                          disabled={
+                            replacementModal.addProduct.quantity >=
+                            (replacementModal.addProduct.maxStock || 99)
+                          }
+                          aria-label="Increase quantity"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div className="modal-item-subtotal">
+                        <strong>
+                          $
+                          {(
+                            replacementModal.addProduct.price *
+                            replacementModal.addProduct.quantity
+                          ).toFixed(2)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Section 3: Summary / Preview */}
+              {(() => {
+                const removedValue = cart
+                  .filter((item) => replacementModal.removeProductIds.includes(getItemId(item)))
+                  .reduce(
+                    (sum, item) =>
+                      sum + Number(item.price || item.productPrice || 0) * (item.quantity || 1),
+                    0
+                  );
+                const addedValue =
+                  replacementModal.addProduct && replacementModal.addProduct.checked
+                    ? replacementModal.addProduct.price * replacementModal.addProduct.quantity
+                    : 0;
+                const projectedTotal = Math.max(0, frontendTotal - removedValue + addedValue);
+                const netSavings = frontendTotal - projectedTotal;
+
+                return (
+                  <div className="modal-summary-box">
+                    <div className="modal-summary-row">
+                      <span>Current Cart Total:</span>
+                      <span>${frontendTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="modal-summary-row" style={{ color: "#dc2626" }}>
+                      <span>- Items Removed ({replacementModal.removeProductIds.length}):</span>
+                      <span>-${removedValue.toFixed(2)}</span>
+                    </div>
+                    <div className="modal-summary-row" style={{ color: "#15803d" }}>
+                      <span>+ Items Added ({replacementModal.addProduct?.checked ? 1 : 0}):</span>
+                      <span>+${addedValue.toFixed(2)}</span>
+                    </div>
+                    <div className="modal-summary-total">
+                      <span>Projected New Cart Total:</span>
+                      <span>${projectedTotal.toFixed(2)}</span>
+                    </div>
+                    {netSavings !== 0 && (
+                      <div
+                        style={{
+                          marginTop: "8px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: "13px",
+                        }}
+                      >
+                        <span style={{ fontWeight: "600" }}>Estimated Difference:</span>
+                        <span className="modal-savings-pill">
+                          {netSavings > 0
+                            ? `You Save $${netSavings.toFixed(2)}`
+                            : `+$${Math.abs(netSavings).toFixed(2)}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={closeReplacementModal}
+                disabled={replacementModal.saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleSaveReplacement}
+                disabled={replacementModal.saving}
+              >
+                {replacementModal.saving ? "Saving Changes..." : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

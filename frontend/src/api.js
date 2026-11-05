@@ -2,16 +2,13 @@ export const API_BASE = "http://localhost:3000";
 export const API_PRODUCTS_URL = "http://localhost:3000/api/products";
 export const API_USERS_URL = "http://localhost:3000/api/users";
 export const API_LOGIN_URL = "http://localhost:3000/api/login";
-<<<<<<< HEAD
 export const API_ORDERS_URL = "http://localhost:3000/api/orders";
-=======
 export const API_RESERVATIONS_URL = "http://localhost:3000/api/reservations";
 export const API_BUDGET_URL = "http://localhost:3000/api/budget";
 export const API_BUDGET_ALTERNATIVES_URL = "http://localhost:3000/api/budget/alternatives";
 export const API_CART_URL = "http://localhost:3000/api/cart";
 export const API_CART_REPLACE_URL = "http://localhost:3000/api/cart/replace";
 export const API_SHARED_CARTS_URL = "http://localhost:3000/api/shared-carts";
->>>>>>> 9e3eec726a18ed39e86bf6abe1158e07e6b3f35d
 
 export const API_BASE_URL = API_PRODUCTS_URL;
 export const DEFAULT_IMAGE = "https://static.thenounproject.com/png/1077596-200.png";

@@ -963,10 +963,12 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // Use user.cart or clientCart passed in body
-    let workingCart = user.cart && user.cart.length > 0
-      ? user.cart.map((i) => ({ productId: i.productId, quantity: i.quantity }))
-      : (Array.isArray(clientCart) ? clientCart.map((i) => ({ productId: i.productId || i.id, quantity: i.quantity || 1 })) : []);
+    // Use clientCart if passed from client (authoritative current session state), otherwise fallback to user.cart
+    let workingCart = Array.isArray(clientCart) && clientCart.length > 0
+      ? clientCart.map((i) => ({ productId: i.productId || i.id || i._id, quantity: Number(i.quantity || 1) }))
+      : (user.cart && user.cart.length > 0
+          ? user.cart.map((i) => ({ productId: i.productId, quantity: Number(i.quantity || 1) }))
+          : []);
 
     const targetIndex = workingCart.findIndex(
       (item) => String(item.productId) === String(originalProductId)
