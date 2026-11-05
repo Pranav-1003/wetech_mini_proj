@@ -4,11 +4,14 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const Product = require("./products");
 const User = require("./users");
+const Reservation = require("./reservations");
 
 const app = express();
 const PORT = 3000;
+const JWT_SECRET = process.env.JWT_SECRET || "webtech_mini_proj_jwt_secret_key_2026_secure";
 
 app.use(cors());
 app.use(express.json());
@@ -24,25 +27,45 @@ app.listen(PORT, () => {
 
 const verifyAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const email = req.headers["x-user-email"] || (authHeader && authHeader.split(" ")[1]);
+  const token = authHeader && authHeader.startsWith("Bearer ")
+    ? authHeader.split(" ")[1]
+    : authHeader || req.headers["x-user-email"];
 
-  if (!email) {
+  if (!token) {
     return res.status(401).json({ message: "Unauthorized. Please log in first." });
   }
 
-  let userEmail = email;
   try {
-    const decoded = Buffer.from(email, "base64").toString("utf-8");
-    if (decoded.includes("@")) userEmail = decoded;
-  } catch { }
+    // 1. Verify cryptographic JWT signature and expiration
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = (decoded.userId ? await User.findById(decoded.userId) : null) ||
+                 (decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
 
-  const user = await User.findOne({ emailId: userEmail.toLowerCase().trim() });
-  if (!user) {
-    return res.status(401).json({ message: "Invalid user authentication." });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user authentication token." });
+    }
+
+    req.user = user;
+    return next();
+  } catch (jwtErr) {
+    if (jwtErr.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Authentication token expired. Please log in again." });
+    }
+
+    // 2. Fallback for backwards compatibility with any existing session tokens
+    try {
+      let fallbackEmail = token;
+      const decodedBuf = Buffer.from(token, "base64").toString("utf-8");
+      if (decodedBuf.includes("@")) fallbackEmail = decodedBuf;
+      const legacyUser = await User.findOne({ emailId: fallbackEmail.toLowerCase().trim() });
+      if (legacyUser) {
+        req.user = legacyUser;
+        return next();
+      }
+    } catch { }
+
+    return res.status(401).json({ message: "Invalid authentication token." });
   }
-
-  req.user = user;
-  next();
 };
 
 app.post(["/api/users", "/users"], async (req, res) => {
@@ -65,8 +88,20 @@ app.post(["/api/users", "/users"], async (req, res) => {
       password: String(password),
     });
 
+    // Generate real JWT token upon registration
+    const token = jwt.sign(
+      {
+        userId: newUser._id,
+        emailId: newUser.emailId,
+        username: newUser.username,
+      },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
     res.status(201).json({
       message: `Successfully registered! Welcome, ${newUser.username}.`,
+      token,
       user: { username: newUser.username, emailId: newUser.emailId, age: newUser.age },
     });
   } catch (err) {
@@ -90,7 +125,17 @@ app.post(["/api/login", "/login"], async (req, res) => {
       return res.status(401).json({ message: "Invalid Password." });
     }
 
-    const token = Buffer.from(user.emailId).toString("base64");
+    // Generate real, cryptographically signed JWT token with 24-hour expiration
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        emailId: user.emailId,
+        username: user.username,
+      },
+      JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
     res.json({
       message: "Login successful!",
       token,
@@ -103,8 +148,32 @@ app.post(["/api/login", "/login"], async (req, res) => {
 
 app.get(["/api/products", "/products"], verifyAuth, async (req, res) => {
   try {
+    // Expire any stale reservations first
+    await Reservation.updateMany(
+      { status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+
     const products = await Product.find();
-    res.json(products);
+
+    // Aggregate active reserved quantities per product
+    const activeReservations = await Reservation.aggregate([
+      { $match: { status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } },
+    ]);
+    const reservedMap = {};
+    activeReservations.forEach((r) => {
+      reservedMap[r._id] = r.totalReserved;
+    });
+
+    const enriched = products.map((p) => {
+      const obj = p.toObject();
+      const reserved = reservedMap[p.productId] || 0;
+      obj.availableStock = Math.max(0, p.quantity - reserved);
+      return obj;
+    });
+
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ message: "Failed to retrieve products", error: err.message });
   }
@@ -176,9 +245,28 @@ app.delete(["/api/users", "/users"], async (req, res) => {
 });
 
 app.get(["/api/products/:productId", "/products/:productId"], async (req, res) => {
-  const product = await Product.findOne({ productId: req.params.productId });
-  if (!product) return res.status(404).json({ message: "Product not found" });
-  res.json(product);
+  try {
+    const product = await Product.findOne({ productId: req.params.productId });
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // Expire any stale reservations first
+    await Reservation.updateMany(
+      { productId: product.productId, status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+
+    const activeReservations = await Reservation.aggregate([
+      { $match: { productId: product.productId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
+    ]);
+    const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
+    const obj = product.toObject();
+    obj.availableStock = Math.max(0, product.quantity - totalReserved);
+
+    res.json(obj);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to retrieve product", error: err.message });
+  }
 });
 
 app.post(["/api/products", "/products"], async (req, res) => {
@@ -264,5 +352,212 @@ app.delete(["/api/products/:productId", "/products/:productId"], async (req, res
     res.json({ message: "Product deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete product", error: err.message });
+  }
+});
+
+// --- Reservation Expiry Cleanup ---
+const cleanupExpiredReservations = async () => {
+  try {
+    await Reservation.updateMany(
+      { status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+  } catch (err) {
+    console.error("Reservation cleanup error:", err.message);
+  }
+};
+setInterval(cleanupExpiredReservations, 60 * 1000);
+cleanupExpiredReservations(); // run once on startup
+
+// --- Reservation API Endpoints ---
+
+// POST /api/reservations — Reserve a product with 10-minute expiry and concurrency protection
+app.post("/api/reservations", verifyAuth, async (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+    const reqQty = Number(quantity);
+
+    if (!productId || !reqQty || reqQty < 1 || isNaN(reqQty)) {
+      return res.status(400).json({ message: "Valid productId and quantity (>= 1) are required." });
+    }
+
+    const product = await Product.findOne({ productId });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Clean up any expired reservations first
+    await Reservation.updateMany(
+      { productId, status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+
+    // Calculate currently available stock: Total Stock - Sum of Active Reservations
+    const activeReservations = await Reservation.aggregate([
+      { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
+    ]);
+    const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
+    const availableStock = Math.max(0, product.quantity - totalReserved);
+
+    if (reqQty > availableStock) {
+      return res.status(400).json({
+        message: `Insufficient stock. Only ${availableStock} unit(s) available.`,
+        availableStock,
+      });
+    }
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+    // Create reservation
+    const reservation = await Reservation.create({
+      userId: req.user._id,
+      productId,
+      quantity: reqQty,
+      status: "active",
+      expiresAt,
+    });
+
+    // Concurrency verification:
+    // Determine cumulative active reservations ordered by (createdAt ASC, _id ASC) up to and including this reservation
+    const activePriorReservations = await Reservation.find({
+      productId,
+      status: "active",
+      expiresAt: { $gt: new Date() },
+      $or: [
+        { createdAt: { $lt: reservation.createdAt } },
+        { createdAt: reservation.createdAt, _id: { $lte: reservation._id } },
+      ],
+    });
+    const cumulativeReserved = activePriorReservations.reduce((sum, r) => sum + r.quantity, 0);
+
+    if (cumulativeReserved > product.quantity) {
+      // Race condition detected: another concurrent request reserved the last stock first. Roll back this reservation.
+      await Reservation.deleteOne({ _id: reservation._id });
+      return res.status(409).json({
+        message: "Reservation conflict. The requested stock was reserved by another user.",
+        availableStock: 0,
+      });
+    }
+
+    res.status(201).json({
+      message: "Product reserved successfully!",
+      reservation,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create reservation", error: err.message });
+  }
+});
+
+// GET /api/reservations/my — Return logged-in user's reservations
+app.get("/api/reservations/my", verifyAuth, async (req, res) => {
+  try {
+    // Automatically mark user's expired reservations
+    await Reservation.updateMany(
+      { userId: req.user._id, status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+
+    const reservations = await Reservation.find({ userId: req.user._id })
+      .sort({ createdAt: -1 });
+
+    // Enrich reservations with product details
+    const productIds = [...new Set(reservations.map((r) => r.productId))];
+    const products = await Product.find({ productId: { $in: productIds } });
+    const productMap = {};
+    products.forEach((p) => { productMap[p.productId] = p; });
+
+    const enriched = reservations.map((r) => ({
+      ...r.toObject(),
+      product: productMap[r.productId] || null,
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch reservations", error: err.message });
+  }
+});
+
+// DELETE /api/reservations/:id — Cancel reservation and release stock
+app.delete("/api/reservations/:id", verifyAuth, async (req, res) => {
+  try {
+    // Atomically cancel reservation owned by the user
+    const updated = await Reservation.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id, status: "active" },
+      { $set: { status: "cancelled" } },
+      { new: true }
+    );
+
+    if (!updated) {
+      const existing = await Reservation.findById(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Reservation not found." });
+      }
+      if (existing.userId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You can only cancel your own reservations." });
+      }
+      return res.status(400).json({ message: `Cannot cancel a reservation with status '${existing.status}'.` });
+    }
+
+    res.json({ message: "Reservation cancelled successfully.", reservation: updated });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to cancel reservation", error: err.message });
+  }
+});
+
+// POST /api/reservations/:id/complete — Complete reservation during checkout, reduce stock exactly once
+app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
+  try {
+    // Atomically transition reservation from active -> completed to prevent double-completion
+    const updatedReservation = await Reservation.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        userId: req.user._id,
+        status: "active",
+        expiresAt: { $gt: new Date() },
+      },
+      { $set: { status: "completed" } },
+      { new: true }
+    );
+
+    if (!updatedReservation) {
+      const existing = await Reservation.findById(req.params.id);
+      if (!existing) {
+        return res.status(404).json({ message: "Reservation not found." });
+      }
+      if (existing.userId.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: "You can only complete your own reservations." });
+      }
+      if (existing.status !== "active") {
+        return res.status(400).json({ message: `Cannot complete a reservation with status '${existing.status}'.` });
+      }
+      if (new Date() > existing.expiresAt) {
+        existing.status = "expired";
+        await existing.save();
+        return res.status(400).json({ message: "Reservation has expired." });
+      }
+      return res.status(400).json({ message: "Unable to complete reservation." });
+    }
+
+    // Atomically decrement product stock exactly once
+    const updatedProduct = await Product.findOneAndUpdate(
+      { productId: updatedReservation.productId, quantity: { $gte: updatedReservation.quantity } },
+      { $inc: { quantity: -updatedReservation.quantity } },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      // Revert reservation status if stock is unexpectedly insufficient
+      await Reservation.updateOne({ _id: updatedReservation._id }, { $set: { status: "active" } });
+      return res.status(400).json({ message: "Insufficient product stock to complete reservation." });
+    }
+
+    res.json({
+      message: "Reservation completed! Purchase successful.",
+      reservation: updatedReservation,
+      updatedProduct,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to complete reservation", error: err.message });
   }
 });

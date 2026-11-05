@@ -63,3 +63,5 @@ export const getAuthHeaders = () => {
   }
   return headers;
 };
+
+export const API_RESERVATIONS_URL = "http://localhost:3000/api/reservations";

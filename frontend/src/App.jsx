@@ -9,6 +9,7 @@ import Cart from "./pages/Cart";
 import ManageProducts from "./pages/ManageProducts";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
+import MyReservations from "./pages/MyReservations";
 import { getItemId } from "./api";
 import "./App.css";
 
@@ -185,6 +186,18 @@ function App() {
         <Route
           path="/edit-product/:id"
           element={<EditProduct currentUser={currentUser} onLogout={handleLogout} />}
+        />
+
+        {/* My Reservations */}
+        <Route
+          path="/reservations"
+          element={
+            <MyReservations
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              cart={cart}
+            />
+          }
         />
 
         {/* Fallback */}

@@ -373,7 +373,8 @@ function ProductsDisplay({ currentUser, onLogout, cart = [], addToCart }) {
               const pName = product.productName || product.name || "Unnamed Product";
               const pPrice = Number(product.productPrice ?? product.price ?? 0);
               const pCategory = product.category || "General";
-              const pQuantity = product.quantity !== undefined ? product.quantity : "N/A";
+              const pQuantity = product.availableStock !== undefined ? product.availableStock : (product.quantity !== undefined ? product.quantity : "N/A");
+              const pTotalStock = product.quantity !== undefined ? product.quantity : pQuantity;
               const pDescription = product.description || "No description provided.";
               const isAdded = addedNotice[pId];
 
@@ -384,7 +385,12 @@ function ProductsDisplay({ currentUser, onLogout, cart = [], addToCart }) {
                     <span className="product-id-badge">ID: {pId}</span>
                   </div>
 
-                  <div className="product-image-box">
+                  <div
+                    className="product-image-box"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/product/${pId}`)}
+                    title="Click to view product details"
+                  >
                     <img
                       src={getProductImage(product)}
                       alt={pName}
@@ -393,7 +399,12 @@ function ProductsDisplay({ currentUser, onLogout, cart = [], addToCart }) {
                   </div>
 
                   <div className="product-spec-content">
-                    <h3 className="product-name" title={pName}>
+                    <h3
+                      className="product-name"
+                      title={pName}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => navigate(`/product/${pId}`)}
+                    >
                       {pName}
                     </h3>
 
@@ -439,23 +450,40 @@ function ProductsDisplay({ currentUser, onLogout, cart = [], addToCart }) {
                         <span className="spec-val">{pQuantity} units</span>
                       </div>
                       <div className="spec-row">
+                        <span className="spec-key">Total Stock:</span>
+                        <span className="spec-val">{pTotalStock} units</span>
+                      </div>
+                      <div className="spec-row">
                         <span className="spec-key">Description:</span>
                         <span className="spec-val desc-preview">{pDescription}</span>
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      className={`btn-add-cart ${isAdded ? "btn-added" : ""}`}
-                      onClick={(e) => handleAdd(e, product)}
-                      disabled={pQuantity === 0}
-                    >
-                      {pQuantity === 0
-                        ? "Out of Stock"
-                        : isAdded
-                        ? "Added to Cart"
-                        : "Add to Cart"}
-                    </button>
+                    <div style={{ display: "flex", gap: "8px", marginTop: "auto" }}>
+                      <button
+                        type="button"
+                        className={`btn-add-cart ${isAdded ? "btn-added" : ""}`}
+                        onClick={(e) => handleAdd(e, product)}
+                        disabled={pQuantity === 0}
+                        style={{ flex: 1 }}
+                      >
+                        {pQuantity === 0
+                          ? "Out of Stock"
+                          : isAdded
+                          ? "Added to Cart"
+                          : "Add to Cart"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => navigate(`/product/${pId}`)}
+                        disabled={pQuantity === 0}
+                        style={{ padding: "10px 14px", fontSize: "13px" }}
+                        title="Reserve this product"
+                      >
+                        Reserve
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
