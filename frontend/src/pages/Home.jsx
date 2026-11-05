@@ -13,30 +13,30 @@ function Home({ cart = [], setCart, addToCart }) {
   useEffect(() => {
     let ignore = false;
 
-    fetch(API_BASE_URL)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to fetch products from backend (${response.status} ${response.statusText})`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (!ignore) {
-          setProducts(Array.isArray(data) ? data : []);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!ignore) {
-          console.error("Error loading products:", err);
-          setError(
-            err.message.includes("Failed to fetch")
-              ? "Cannot connect to backend server at http://localhost:3000. Please ensure the backend server is running."
-              : err.message
-          );
-          setLoading(false);
-        }
-      });
+    fetch(API_BASE_URL).
+    then((response) => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products from backend (${response.status} ${response.statusText})`);
+      }
+      return response.json();
+    }).
+    then((data) => {
+      if (!ignore) {
+        setProducts(Array.isArray(data) ? data : []);
+        setLoading(false);
+      }
+    }).
+    catch((err) => {
+      if (!ignore) {
+        console.error("Error loading products:", err);
+        setError(
+          err.message.includes("Failed to fetch") ?
+          "Cannot connect to backend server. Please ensure the backend server is running." :
+          err.message
+        );
+        setLoading(false);
+      }
+    });
 
     return () => {
       ignore = true;
@@ -54,9 +54,9 @@ function Home({ cart = [], setCart, addToCart }) {
       if (existingItem) {
         setCart(
           cart.map((item) =>
-            getItemId(item) === pId
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+          getItemId(item) === pId ?
+          { ...item, quantity: item.quantity + 1 } :
+          item
           )
         );
       } else {
@@ -86,58 +86,58 @@ function Home({ cart = [], setCart, addToCart }) {
         </div>
       </div>
 
-      {loading && (
-        <div className="status-container">
+      {loading &&
+      <div className="status-container">
           <p className="status-title">Loading products...</p>
           <p className="status-text">Fetching latest items from backend server...</p>
         </div>
-      )}
+      }
 
-      {error && !loading && (
-        <div className="status-container">
+      {error && !loading &&
+      <div className="status-container">
           <p className="status-title">Unable to load products</p>
           <p className="status-text">{error}</p>
           <button
-            className="btn-primary"
-            onClick={() => window.location.reload()}
-          >
+          className="btn-primary"
+          onClick={() => window.location.reload()}>
+          
             Retry
           </button>
         </div>
-      )}
+      }
 
-      {!loading && !error && products.length === 0 && (
-        <div className="status-container">
+      {!loading && !error && products.length === 0 &&
+      <div className="status-container">
           <p className="status-title">No products found</p>
           <p className="status-text">The database currently has no products listed.</p>
         </div>
-      )}
+      }
 
-      {!loading && !error && products.length > 0 && (
-        <div className="product-grid">
+      {!loading && !error && products.length > 0 &&
+      <div className="product-grid">
           {products.map((product) => {
-            const pId = getItemId(product);
-            const title = product.name || product.title || "Unnamed Product";
-            const image = getProductImage(product);
-            const isAdded = recentlyAdded[pId];
+          const pId = getItemId(product);
+          const title = product.name || product.title || "Unnamed Product";
+          const image = getProductImage(product);
+          const isAdded = recentlyAdded[pId];
 
-            return (
-              <div
-                className="product-card"
-                key={pId}
-                onClick={() => navigate("/product/" + pId)}
-              >
+          return (
+            <div
+              className="product-card"
+              key={pId}
+              onClick={() => navigate("/product/" + pId)}>
+              
                 <div className="product-image-container">
                   <img
-                    src={image}
-                    alt={title}
-                    className="product-image"
-                  />
+                  src={image}
+                  alt={title}
+                  className="product-image" />
+                
                 </div>
                 <div className="product-info">
-                  {product.category && (
-                    <span className="product-category">{product.category}</span>
-                  )}
+                  {product.category &&
+                <span className="product-category">{product.category}</span>
+                }
                   <h3 className="product-title" title={title}>
                     {title}
                   </h3>
@@ -145,19 +145,19 @@ function Home({ cart = [], setCart, addToCart }) {
                     ${Number(product.price || 0).toFixed(2)}
                   </p>
                   <button
-                    className={`add-cart-btn ${isAdded ? "added" : ""}`}
-                    onClick={(event) => handleAddToCart(event, product)}
-                  >
+                  className={`add-cart-btn ${isAdded ? "added" : ""}`}
+                  onClick={(event) => handleAddToCart(event, product)}>
+                  
                     {isAdded ? "Added" : "Add to Cart"}
                   </button>
                 </div>
-              </div>
-            );
-          })}
+              </div>);
+
+        })}
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default Home;

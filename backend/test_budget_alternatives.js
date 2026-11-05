@@ -32,59 +32,59 @@ async function runBudgetTests() {
     await mongoose.connect(MONGO_URI);
     console.log("Connected to MongoDB successfully.\n");
 
-    // Clean up test users
+
     await User.deleteMany({ emailId: { $in: ["budget_user1@example.com", "budget_user2@example.com"] } });
     await Product.deleteMany({ productId: { $in: ["TEST_PREMIUM_PHONE", "TEST_CHEAP_PHONE", "TEST_OUTOFSTOCK_PHONE", "TEST_SHIRT"] } });
 
-    // Setup Test Products
-    // 1. Premium Phone: Electronics, $500, stock: 10
+
+
     await Product.create({
       productId: "TEST_PREMIUM_PHONE",
       productName: "Premium Smartphone X",
       productPrice: 500,
       category: "Electronics",
       quantity: 10,
-      description: "Flagship premium smartphone with OLED display and advanced camera.",
+      description: "Flagship premium smartphone with OLED display and advanced camera."
     });
 
-    // 2. Cheap Phone: Electronics, $300, stock: 15 (Valid Cheaper Alternative)
+
     await Product.create({
       productId: "TEST_CHEAP_PHONE",
       productName: "Budget Smartphone Lite",
       productPrice: 300,
       category: "Electronics",
       quantity: 15,
-      description: "Affordable smartphone with reliable battery life and clear display.",
+      description: "Affordable smartphone with reliable battery life and clear display."
     });
 
-    // 3. Out-of-stock Phone: Electronics, $200, stock: 0 (Must be EXCLUDED)
+
     await Product.create({
       productId: "TEST_OUTOFSTOCK_PHONE",
       productName: "Discount Clearance Phone",
       productPrice: 200,
       category: "Electronics",
       quantity: 0,
-      description: "Ultra cheap phone currently out of stock.",
+      description: "Ultra cheap phone currently out of stock."
     });
 
-    // 4. Cheaper Shirt: Clothing, $50, stock: 20 (Unrelated category, must be EXCLUDED)
+
     await Product.create({
       productId: "TEST_SHIRT",
       productName: "Cotton Casual Shirt",
       productPrice: 50,
       category: "Clothing",
       quantity: 20,
-      description: "Comfortable cotton shirt.",
+      description: "Comfortable cotton shirt."
     });
 
-    // Setup Test Users
+
     const user1 = await User.create({
       username: "BudgetUser1",
       emailId: "budget_user1@example.com",
       age: 24,
       password: "password123",
       budget: 0,
-      cart: [],
+      cart: []
     });
 
     const user2 = await User.create({
@@ -93,13 +93,13 @@ async function runBudgetTests() {
       age: 26,
       password: "password123",
       budget: 1500,
-      cart: [],
+      cart: []
     });
 
     const token1 = jwt.sign({ userId: user1._id, emailId: user1.emailId }, JWT_SECRET, { expiresIn: "1h" });
     const token2 = jwt.sign({ userId: user2._id, emailId: user2.emailId }, JWT_SECRET, { expiresIn: "1h" });
 
-    // Helper to simulate internal algorithm
+
     const allProducts = await Product.find();
 
     console.log("--- TEST 1: Customer sets a budget ---");
@@ -115,7 +115,7 @@ async function runBudgetTests() {
     assert(updatedUser1.budget === 450, "User 1 successfully updated shopping budget to $450.");
 
     console.log("\n--- TEST 3: Cart remains within budget ---");
-    // Add 1 item of $300 to cart (Budget is $450)
+
     user1.cart = [{ productId: "TEST_CHEAP_PHONE", quantity: 1 }];
     await user1.save();
 
@@ -130,7 +130,7 @@ async function runBudgetTests() {
     assert(remainingBudget === 150, `Remaining budget correctly calculated as $${remainingBudget}.`);
 
     console.log("\n--- TEST 4: Cart exceeds budget ---");
-    // Change cart to 1 Premium Phone ($500) against budget $450
+
     user1.cart = [{ productId: "TEST_PREMIUM_PHONE", quantity: 1 }];
     await user1.save();
 
@@ -145,14 +145,14 @@ async function runBudgetTests() {
     assert(exceededAmount === 50, `Exceeded amount correctly calculated as $${exceededAmount}.`);
 
     console.log("\n--- TEST 5: Cheaper alternatives are returned ---");
-    // Run alternative matching for TEST_PREMIUM_PHONE ($500, Electronics)
+
     const premiumPhone = await Product.findOne({ productId: "TEST_PREMIUM_PHONE" });
     const candidates = await Product.find({ productId: { $ne: premiumPhone.productId } });
 
-    // Filter matching logic:
-    // 1. Same category
-    // 2. Price < 500
-    // 3. Stock > 0
+
+
+
+
     const validAlternatives = candidates.filter((c) => {
       const sameCat = c.category.toLowerCase().trim() === premiumPhone.category.toLowerCase().trim();
       const isCheaper = c.productPrice < premiumPhone.productPrice;
@@ -172,7 +172,7 @@ async function runBudgetTests() {
     assert(outOfStockPhone === undefined, "Out-of-stock product ('Discount Clearance Phone', stock: 0) is excluded from alternatives.");
 
     console.log("\n--- TEST 8: Customer replaces a product ---");
-    // Replace TEST_PREMIUM_PHONE with TEST_CHEAP_PHONE in User 1's cart
+
     const originalQty = user1.cart[0].quantity;
     user1.cart[0].productId = "TEST_CHEAP_PHONE";
     await user1.save();
@@ -193,13 +193,13 @@ async function runBudgetTests() {
     assert(finalRemaining === 150, `Remaining budget correctly updated to $${finalRemaining}.`);
 
     console.log("\n--- TEST 10: Customer cannot access another customer's budget or cart ---");
-    // Verify user1 and user2 budgets and carts remain completely isolated
+
     const checkUser1 = await User.findById(user1._id);
     const checkUser2 = await User.findById(user2._id);
     assert(checkUser1.budget === 450 && checkUser2.budget === 1500, "User 1 ($450) and User 2 ($1500) budgets are completely isolated.");
     assert(checkUser1.cart.length === 1 && checkUser2.cart.length === 0, "User 1 and User 2 carts are isolated by JWT / userId.");
 
-    // Clean up test data
+
     await User.deleteMany({ emailId: { $in: ["budget_user1@example.com", "budget_user2@example.com"] } });
     await Product.deleteMany({ productId: { $in: ["TEST_PREMIUM_PHONE", "TEST_CHEAP_PHONE", "TEST_OUTOFSTOCK_PHONE", "TEST_SHIRT"] } });
 
@@ -215,4 +215,3 @@ async function runBudgetTests() {
 }
 
 runBudgetTests();
-

@@ -7,7 +7,7 @@ import "../App.css";
 function Login({ currentUser, setCurrentUser, onLogout }) {
   const [formData, setFormData] = useState({
     emailId: "",
-    password: "",
+    password: ""
   });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -35,19 +35,19 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
       const response = await fetch(API_LOGIN_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           emailId: formData.emailId.trim(),
-          password: formData.password,
-        }),
+          password: formData.password
+        })
       });
 
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         setLoading(false);
-        setErrorMessage(data.message || `Login failed (HTTP ${response.status})`);
+        setErrorMessage(data.message || `Login failed (${response.status})`);
         return;
       }
 
@@ -81,15 +81,15 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
             <button
               type="button"
               className="auth-tab-btn active"
-              onClick={() => navigate("/login")}
-            >
+              onClick={() => navigate("/login")}>
+              
               Login
             </button>
             <button
               type="button"
               className="auth-tab-btn"
-              onClick={() => navigate("/register")}
-            >
+              onClick={() => navigate("/register")}>
+              
               Sign Up
             </button>
           </div>
@@ -99,19 +99,19 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
             Enter your registered email ID and password.
           </p>
 
-          {successMessage && (
-            <div className="alert alert-success" role="alert">
+          {successMessage &&
+          <div className="alert alert-success" role="alert">
               <div>{successMessage}</div>
             </div>
-          )}
+          }
 
-          {errorMessage && (
-            <div className="alert alert-error" role="alert">
+          {errorMessage &&
+          <div className="alert alert-error" role="alert">
               <div>
                 <strong>{errorMessage}</strong>
               </div>
             </div>
-          )}
+          }
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -125,8 +125,8 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
                 placeholder="registered-user@example.com"
                 value={formData.emailId}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="form-group">
@@ -140,8 +140,8 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
                 placeholder="Enter password"
                 value={formData.password}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
             </div>
 
             <button type="submit" className="btn-submit" disabled={loading}>
@@ -154,15 +154,15 @@ function Login({ currentUser, setCurrentUser, onLogout }) {
             <button
               type="button"
               className="btn-secondary-action"
-              onClick={() => navigate("/register")}
-            >
+              onClick={() => navigate("/register")}>
+              
               Create New Account
             </button>
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default Login;

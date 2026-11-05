@@ -14,18 +14,18 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
   const [putData, setPutData] = useState({
     username: currentUser?.username || "",
     age: currentUser?.age || "",
-    password: "",
+    password: ""
   });
 
   const [patchData, setPatchData] = useState({
     username: "",
     age: "",
-    password: "",
+    password: ""
   });
   const [patchFieldsToUpdate, setPatchFieldsToUpdate] = useState({
     username: true,
     age: false,
-    password: false,
+    password: false
   });
 
   const [feedback, setFeedback] = useState(null);
@@ -36,7 +36,7 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
       setPutData((prev) => ({
         ...prev,
         username: currentUser.username || prev.username,
-        age: currentUser.age || prev.age,
+        age: currentUser.age || prev.age
       }));
     }
   }, [currentUser]);
@@ -52,14 +52,14 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
             <button
               type="button"
               className="btn-primary mt-4"
-              onClick={() => navigate("/login")}
-            >
+              onClick={() => navigate("/login")}>
+              
               Go to Login
             </button>
           </div>
         </main>
-      </div>
-    );
+      </div>);
+
   }
 
   const handleCompleteUpdate = async (e) => {
@@ -76,14 +76,14 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
     const payload = {
       username: putData.username.trim(),
       age: Number(putData.age),
-      password: putData.password,
+      password: putData.password
     };
 
     try {
       const response = await fetch(targetUrl, {
         method: "PUT",
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json().catch(() => ({}));
@@ -95,18 +95,18 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
         setPutData((prev) => ({ ...prev, password: "" }));
         setFeedback({
           success: true,
-          message: result.message || "Complete profile updated successfully.",
+          message: result.message || "Complete profile updated successfully."
         });
       } else {
         setFeedback({
           success: false,
-          message: result.message || "Failed to update profile.",
+          message: result.message || "Failed to update profile."
         });
       }
     } catch (err) {
       setFeedback({
         success: false,
-        message: err.message || "Network request failed.",
+        message: err.message || "Network request failed."
       });
     } finally {
       setLoading(false);
@@ -141,7 +141,7 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
       const response = await fetch(targetUrl, {
         method: "PATCH",
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json().catch(() => ({}));
@@ -153,18 +153,18 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
         setPatchData({ username: "", age: "", password: "" });
         setFeedback({
           success: true,
-          message: result.message || "Selected fields updated successfully.",
+          message: result.message || "Selected fields updated successfully."
         });
       } else {
         setFeedback({
           success: false,
-          message: result.message || "Failed to update selected fields.",
+          message: result.message || "Failed to update selected fields."
         });
       }
     } catch (err) {
       setFeedback({
         success: false,
-        message: err.message || "Network request failed.",
+        message: err.message || "Network request failed."
       });
     } finally {
       setLoading(false);
@@ -185,7 +185,7 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
     try {
       const response = await fetch(targetUrl, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
 
       const result = await response.json().catch(() => ({}));
@@ -193,7 +193,7 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
       if (response.ok) {
         setFeedback({
           success: true,
-          message: result.message || "Account deleted successfully. Logging out...",
+          message: result.message || "Account deleted successfully. Logging out..."
         });
         setTimeout(() => {
           if (onLogout) onLogout();
@@ -202,13 +202,13 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
       } else {
         setFeedback({
           success: false,
-          message: result.message || "Failed to delete account.",
+          message: result.message || "Failed to delete account."
         });
       }
     } catch (err) {
       setFeedback({
         success: false,
-        message: err.message || "Network request failed.",
+        message: err.message || "Network request failed."
       });
     } finally {
       setLoading(false);
@@ -229,7 +229,7 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
           </div>
         </div>
 
-        {/* Action Selector Buttons */}
+        {}
         <div className="profile-action-tabs">
           <button
             type="button"
@@ -237,8 +237,8 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
             onClick={() => {
               setActiveAction("complete");
               setFeedback(null);
-            }}
-          >
+            }}>
+            
             Update Complete Profile
           </button>
           <button
@@ -247,8 +247,8 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
             onClick={() => {
               setActiveAction("selected");
               setFeedback(null);
-            }}
-          >
+            }}>
+            
             Update Selected Fields
           </button>
           <button
@@ -257,22 +257,22 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
             onClick={() => {
               setActiveAction("delete");
               setFeedback(null);
-            }}
-          >
+            }}>
+            
             Delete Account
           </button>
         </div>
 
-        {/* Plain Feedback Notification */}
-        {feedback && (
-          <div className="plain-feedback-box">
+        {}
+        {feedback &&
+        <div className="plain-feedback-box">
             {feedback.message}
           </div>
-        )}
+        }
 
-        {/* Card 1: Update Complete Profile */}
-        {activeAction === "complete" && (
-          <div className="plain-card">
+        {}
+        {activeAction === "complete" &&
+        <div className="plain-card">
             <h3>Update Complete Profile</h3>
             <p className="plain-card-sub">
               Update all profile fields for {currentUser.emailId}.
@@ -282,58 +282,58 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
               <div className="form-group">
                 <label>Username</label>
                 <input
-                  type="text"
-                  value={putData.username}
-                  onChange={(e) =>
-                    setPutData((prev) => ({ ...prev, username: e.target.value }))
-                  }
-                  placeholder="Enter username"
-                  required
-                />
+                type="text"
+                value={putData.username}
+                onChange={(e) =>
+                setPutData((prev) => ({ ...prev, username: e.target.value }))
+                }
+                placeholder="Enter username"
+                required />
+              
               </div>
 
               <div className="form-group">
                 <label>Age</label>
                 <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  value={putData.age}
-                  onChange={(e) =>
-                    setPutData((prev) => ({ ...prev, age: e.target.value }))
-                  }
-                  placeholder="Enter age"
-                  required
-                />
+                type="number"
+                min="1"
+                max="120"
+                value={putData.age}
+                onChange={(e) =>
+                setPutData((prev) => ({ ...prev, age: e.target.value }))
+                }
+                placeholder="Enter age"
+                required />
+              
               </div>
 
               <div className="form-group">
                 <label>Password</label>
                 <input
-                  type="password"
-                  value={putData.password}
-                  onChange={(e) =>
-                    setPutData((prev) => ({ ...prev, password: e.target.value }))
-                  }
-                  placeholder="Enter password"
-                  required
-                />
+                type="password"
+                value={putData.password}
+                onChange={(e) =>
+                setPutData((prev) => ({ ...prev, password: e.target.value }))
+                }
+                placeholder="Enter password"
+                required />
+              
               </div>
 
               <button
-                type="submit"
-                className="btn-primary mt-2"
-                disabled={loading}
-              >
+              type="submit"
+              className="btn-primary mt-2"
+              disabled={loading}>
+              
                 {loading ? "Saving..." : "Save Changes"}
               </button>
             </form>
           </div>
-        )}
+        }
 
-        {/* Card 2: Update Selected Fields */}
-        {activeAction === "selected" && (
-          <div className="plain-card">
+        {}
+        {activeAction === "selected" &&
+        <div className="plain-card">
             <h3>Update Selected Fields</h3>
             <p className="plain-card-sub">
               Select specific fields to update for {currentUser.emailId}.
@@ -343,97 +343,97 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
               <div className="plain-field-row">
                 <label className="plain-checkbox-label">
                   <input
-                    type="checkbox"
-                    checked={patchFieldsToUpdate.username}
-                    onChange={(e) =>
-                      setPatchFieldsToUpdate((p) => ({
-                        ...p,
-                        username: e.target.checked,
-                      }))
-                    }
-                  />
+                  type="checkbox"
+                  checked={patchFieldsToUpdate.username}
+                  onChange={(e) =>
+                  setPatchFieldsToUpdate((p) => ({
+                    ...p,
+                    username: e.target.checked
+                  }))
+                  } />
+                
                   <span>Username</span>
                 </label>
                 <input
-                  type="text"
-                  disabled={!patchFieldsToUpdate.username}
-                  value={patchData.username}
-                  onChange={(e) =>
-                    setPatchData((prev) => ({ ...prev, username: e.target.value }))
-                  }
-                  placeholder="New Username"
-                  className="plain-input"
-                />
+                type="text"
+                disabled={!patchFieldsToUpdate.username}
+                value={patchData.username}
+                onChange={(e) =>
+                setPatchData((prev) => ({ ...prev, username: e.target.value }))
+                }
+                placeholder="New Username"
+                className="plain-input" />
+              
               </div>
 
               <div className="plain-field-row">
                 <label className="plain-checkbox-label">
                   <input
-                    type="checkbox"
-                    checked={patchFieldsToUpdate.age}
-                    onChange={(e) =>
-                      setPatchFieldsToUpdate((p) => ({
-                        ...p,
-                        age: e.target.checked,
-                      }))
-                    }
-                  />
+                  type="checkbox"
+                  checked={patchFieldsToUpdate.age}
+                  onChange={(e) =>
+                  setPatchFieldsToUpdate((p) => ({
+                    ...p,
+                    age: e.target.checked
+                  }))
+                  } />
+                
                   <span>Age</span>
                 </label>
                 <input
-                  type="number"
-                  min="1"
-                  max="120"
-                  disabled={!patchFieldsToUpdate.age}
-                  value={patchData.age}
-                  onChange={(e) =>
-                    setPatchData((prev) => ({ ...prev, age: e.target.value }))
-                  }
-                  placeholder="New Age"
-                  className="plain-input"
-                />
+                type="number"
+                min="1"
+                max="120"
+                disabled={!patchFieldsToUpdate.age}
+                value={patchData.age}
+                onChange={(e) =>
+                setPatchData((prev) => ({ ...prev, age: e.target.value }))
+                }
+                placeholder="New Age"
+                className="plain-input" />
+              
               </div>
 
               <div className="plain-field-row">
                 <label className="plain-checkbox-label">
                   <input
-                    type="checkbox"
-                    checked={patchFieldsToUpdate.password}
-                    onChange={(e) =>
-                      setPatchFieldsToUpdate((p) => ({
-                        ...p,
-                        password: e.target.checked,
-                      }))
-                    }
-                  />
+                  type="checkbox"
+                  checked={patchFieldsToUpdate.password}
+                  onChange={(e) =>
+                  setPatchFieldsToUpdate((p) => ({
+                    ...p,
+                    password: e.target.checked
+                  }))
+                  } />
+                
                   <span>Password</span>
                 </label>
                 <input
-                  type="password"
-                  disabled={!patchFieldsToUpdate.password}
-                  value={patchData.password}
-                  onChange={(e) =>
-                    setPatchData((prev) => ({ ...prev, password: e.target.value }))
-                  }
-                  placeholder="New Password"
-                  className="plain-input"
-                />
+                type="password"
+                disabled={!patchFieldsToUpdate.password}
+                value={patchData.password}
+                onChange={(e) =>
+                setPatchData((prev) => ({ ...prev, password: e.target.value }))
+                }
+                placeholder="New Password"
+                className="plain-input" />
+              
               </div>
 
               <button
-                type="submit"
-                className="btn-primary mt-2"
-                disabled={loading}
-              >
+              type="submit"
+              className="btn-primary mt-2"
+              disabled={loading}>
+              
                 {loading ? "Updating..." : "Update Selected Fields"}
               </button>
             </form>
           </div>
-        )}
+        }
 
-        {/* Card 3: Delete Account */}
-        {activeAction === "delete" && (
-          <div className="plain-card">
+        {}
+        {activeAction === "delete" &&
+        <div className="plain-card">
             <h3>Delete Account</h3>
             <p className="plain-card-sub">
               Permanently remove the registration record for {currentUser.emailId}.
@@ -441,19 +441,19 @@ function UserProfile({ currentUser, setCurrentUser, onLogout }) {
 
             <div className="plain-action-actions">
               <button
-                type="button"
-                onClick={handleDeleteAccount}
-                className="btn-danger"
-                disabled={loading}
-              >
+              type="button"
+              onClick={handleDeleteAccount}
+              className="btn-danger"
+              disabled={loading}>
+              
                 {loading ? "Deleting..." : "Delete Account"}
               </button>
             </div>
           </div>
-        )}
+        }
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default UserProfile;

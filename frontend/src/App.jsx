@@ -49,21 +49,21 @@ function App() {
       const existingItem = prevCart.find((item) => getItemId(item) === pId);
       if (existingItem) {
         return prevCart.map((item) =>
-          getItemId(item) === pId
-            ? { ...item, quantity: (item.quantity || 1) + quantity }
-            : item
+        getItemId(item) === pId ?
+        { ...item, quantity: (item.quantity || 1) + quantity } :
+        item
         );
       }
       return [
-        ...prevCart,
-        {
-          ...product,
-          productId: pId,
-          name: product.productName || product.name || pId,
-          price: product.productPrice !== undefined ? product.productPrice : product.price || 0,
-          quantity,
-        },
-      ];
+      ...prevCart,
+      {
+        ...product,
+        productId: pId,
+        name: product.productName || product.name || pId,
+        price: product.productPrice !== undefined ? product.productPrice : product.price || 0,
+        quantity
+      }];
+
     });
   };
 
@@ -73,15 +73,15 @@ function App() {
 
   const updateQuantity = (productId, delta) => {
     setCart((prevCart) =>
-      prevCart
-        .map((item) => {
-          if (getItemId(item) === productId) {
-            const newQty = (item.quantity || 1) + delta;
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean)
+    prevCart.
+    map((item) => {
+      if (getItemId(item) === productId) {
+        const newQty = (item.quantity || 1) + delta;
+        return newQty > 0 ? { ...item, quantity: newQty } : null;
+      }
+      return item;
+    }).
+    filter(Boolean)
     );
   };
 
@@ -92,132 +92,132 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default route: if authenticated go to /products, otherwise to /login */}
+        {}
         <Route
           path="/"
           element={
-            currentUser ? (
-              <Navigate to="/products" replace />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
+          currentUser ?
+          <Navigate to="/products" replace /> :
 
-        {/* Page 1: User Registration */}
+          <Navigate to="/login" replace />
+
+          } />
+        
+
+        {}
         <Route
           path="/register"
           element={
-            <Register
-              currentUser={currentUser}
-              onLogout={handleLogout}
-            />
-          }
-        />
+          <Register
+            currentUser={currentUser}
+            onLogout={handleLogout} />
 
-        {/* Page 2: User Login */}
+          } />
+        
+
+        {}
         <Route
           path="/login"
           element={
-            <Login
-              currentUser={currentUser}
-              setCurrentUser={setCurrentUser}
-              onLogout={handleLogout}
-            />
-          }
-        />
+          <Login
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            onLogout={handleLogout} />
 
-        {/* Page 3: Products Display */}
+          } />
+        
+
+        {}
         <Route
           path="/products"
           element={
-            <ProductsDisplay
-              currentUser={currentUser}
-              onLogout={handleLogout}
-              cart={cart}
-              addToCart={addToCart}
-            />
-          }
-        />
+          <ProductsDisplay
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            cart={cart}
+            addToCart={addToCart} />
 
-        {/* Section 3: User Profile Management (PUT, PATCH, DELETE) */}
+          } />
+        
+
+        {}
         <Route
           path="/profile"
           element={
-            <UserProfile
-              currentUser={currentUser}
-              setCurrentUser={setCurrentUser}
-              onLogout={handleLogout}
-            />
-          }
-        />
+          <UserProfile
+            currentUser={currentUser}
+            setCurrentUser={setCurrentUser}
+            onLogout={handleLogout} />
 
-        {/* Product Details */}
+          } />
+        
+
+        {}
         <Route
           path="/product/:id"
           element={
-            <ProductDetails
-              cart={cart}
-              setCart={setCart}
-              addToCart={addToCart}
-            />
-          }
-        />
+          <ProductDetails
+            cart={cart}
+            setCart={setCart}
+            addToCart={addToCart} />
 
-        {/* Shopping Cart */}
+          } />
+        
+
+        {}
         <Route
           path="/cart"
           element={
-            <Cart
-              currentUser={currentUser}
-              onLogout={handleLogout}
-              cart={cart}
-              setCart={setCart}
-              updateQuantity={updateQuantity}
-              removeFromCart={removeFromCart}
-              clearCart={clearCart}
-            />
-          }
-        />
+          <Cart
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            cart={cart}
+            setCart={setCart}
+            updateQuantity={updateQuantity}
+            removeFromCart={removeFromCart}
+            clearCart={clearCart} />
 
-        {/* Product Management */}
+          } />
+        
+
+        {}
         <Route path="/manage" element={<ManageProducts />} />
         <Route
           path="/add-product"
-          element={<AddProduct currentUser={currentUser} onLogout={handleLogout} />}
-        />
+          element={<AddProduct currentUser={currentUser} onLogout={handleLogout} />} />
+        
         <Route
           path="/edit-product/:id"
-          element={<EditProduct currentUser={currentUser} onLogout={handleLogout} />}
-        />
+          element={<EditProduct currentUser={currentUser} onLogout={handleLogout} />} />
+        
 
-        {/* My Reservations */}
+        {}
         <Route
           path="/reservations"
           element={
-            <MyReservations
-              currentUser={currentUser}
-              onLogout={handleLogout}
-              cart={cart}
-            />
-          }
-        />
+          <MyReservations
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            cart={cart} />
 
-        {/* Collaborative Shopping Cart (Shared Cart) */}
+          } />
+        
+
+        {}
         <Route
           path="/shared-cart"
-          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />}
-        />
+          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />} />
+        
         <Route
           path="/shared-cart/:roomCode"
-          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />}
-        />
+          element={<SharedCart currentUser={currentUser} onLogout={handleLogout} />} />
+        
 
-        {/* Fallback */}
+        {}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
-  );
+    </BrowserRouter>);
+
 }
 
 export default App;

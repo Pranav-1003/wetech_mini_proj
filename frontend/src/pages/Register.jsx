@@ -9,7 +9,7 @@ function Register({ currentUser, onLogout }) {
     username: "",
     emailId: "",
     age: "",
-    password: "",
+    password: ""
   });
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -37,14 +37,14 @@ function Register({ currentUser, onLogout }) {
       const response = await fetch(API_USERS_URL, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           username: formData.username.trim(),
           emailId: formData.emailId.trim(),
           age: Number(formData.age),
-          password: formData.password,
-        }),
+          password: formData.password
+        })
       });
 
       const data = await response.json().catch(() => ({}));
@@ -76,15 +76,15 @@ function Register({ currentUser, onLogout }) {
             <button
               type="button"
               className="auth-tab-btn"
-              onClick={() => navigate("/login")}
-            >
+              onClick={() => navigate("/login")}>
+              
               Login
             </button>
             <button
               type="button"
               className="auth-tab-btn active"
-              onClick={() => navigate("/register")}
-            >
+              onClick={() => navigate("/register")}>
+              
               Sign Up
             </button>
           </div>
@@ -94,27 +94,27 @@ function Register({ currentUser, onLogout }) {
             Enter your details to register as a new user.
           </p>
 
-          {successMessage && (
-            <div className="alert alert-success" role="alert">
+          {successMessage &&
+          <div className="alert alert-success" role="alert">
               <div>
                 <strong>{successMessage}</strong>
                 <p className="alert-sub">You can now proceed to login.</p>
                 <button
-                  type="button"
-                  className="btn-primary mt-2"
-                  onClick={() => navigate("/login")}
-                >
+                type="button"
+                className="btn-primary mt-2"
+                onClick={() => navigate("/login")}>
+                
                   Proceed to Login
                 </button>
               </div>
             </div>
-          )}
+          }
 
-          {errorMessage && (
-            <div className="alert alert-error" role="alert">
+          {errorMessage &&
+          <div className="alert alert-error" role="alert">
               <div>{errorMessage}</div>
             </div>
-          )}
+          }
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -128,8 +128,8 @@ function Register({ currentUser, onLogout }) {
                 placeholder="Enter username"
                 value={formData.username}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="form-group">
@@ -143,8 +143,8 @@ function Register({ currentUser, onLogout }) {
                 placeholder="user@example.com"
                 value={formData.emailId}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
               <span className="field-hint">Must be a unique email address.</span>
             </div>
 
@@ -161,8 +161,8 @@ function Register({ currentUser, onLogout }) {
                 placeholder="Enter age"
                 value={formData.age}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="form-group">
@@ -176,8 +176,8 @@ function Register({ currentUser, onLogout }) {
                 placeholder="Enter password"
                 value={formData.password}
                 onChange={handleChange}
-                required
-              />
+                required />
+              
             </div>
 
             <button type="submit" className="btn-submit" disabled={loading}>
@@ -190,15 +190,15 @@ function Register({ currentUser, onLogout }) {
             <button
               type="button"
               className="btn-secondary-action"
-              onClick={() => navigate("/login")}
-            >
+              onClick={() => navigate("/login")}>
+              
               Go to Login
             </button>
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default Register;

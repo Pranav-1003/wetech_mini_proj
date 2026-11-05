@@ -1,9 +1,6 @@
-/* =========================================================
-   Theme: Rich Botanical Forest Green & Warm Linen Beige
-   A clean, sophisticated, and distraction-free design system.
-   ========================================================= */
 
-/* --- Base Layout --- */
+
+
 .page {
   max-width: 1200px;
   width: 100%;
@@ -26,7 +23,7 @@
   flex: 1;
 }
 
-/* --- Top Bar & Headers --- */
+
 .top-bar,
 .page-header-banner {
   display: flex;
@@ -86,7 +83,7 @@
   background: #2b6e44;
 }
 
-/* --- Navigation Header --- */
+
 .site-header {
   background: #f7f4ee;
   border-bottom: 1px solid #e3dccb;
@@ -221,7 +218,7 @@
   background: #244d39;
 }
 
-/* --- Common Buttons --- */
+
 .btn-primary,
 .btn-submit {
   background-color: #1b3b2b;
@@ -317,7 +314,7 @@
   background-color: #244d39;
 }
 
-/* --- Auth Card (Login & Register) --- */
+
 .auth-card {
   max-width: 440px;
   margin: 30px auto;
@@ -443,7 +440,7 @@
   color: #54665c;
 }
 
-/* --- Alerts & Notifications --- */
+
 .alert {
   padding: 12px 14px;
   border-radius: 6px;
@@ -469,7 +466,7 @@
   font-size: 13px;
 }
 
-/* --- Products Display (Page 3 Catalog) --- */
+
 .catalog-toolbar {
   background: #f7f4ee;
   border: 1px solid #e3dccb;
@@ -782,7 +779,7 @@
   cursor: not-allowed;
 }
 
-/* --- User Profile Management Page --- */
+
 .profile-action-tabs {
   display: flex;
   gap: 10px;
@@ -921,7 +918,7 @@
   margin-top: 10px;
 }
 
-/* --- Clean Form Card (Add & Edit Product) --- */
+
 .clean-form-card {
   background: #ffffff;
   border: 1px solid #e3dccb;
@@ -988,7 +985,7 @@
   margin-top: 10px;
 }
 
-/* --- Inventory Table (Manage Products) --- */
+
 .toolbar {
   display: flex;
   gap: 12px;
@@ -1105,7 +1102,7 @@
   border-color: #991b1b;
 }
 
-/* --- Cart Page --- */
+
 .cart-header {
   display: flex;
   align-items: center;
@@ -1301,7 +1298,7 @@
   background: #f5dfdc;
 }
 
-/* --- Product Details Single View --- */
+
 .details-page-header {
   display: flex;
   justify-content: space-between;
@@ -1396,7 +1393,7 @@
   gap: 16px;
 }
 
-/* --- Status, Spinner & Empty States --- */
+
 .status-container {
   text-align: center;
   padding: 48px 20px;
@@ -1470,7 +1467,7 @@
   }
 }
 
-/* --- Grid Legacy Store (Home.jsx fallback) --- */
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1562,7 +1559,7 @@
   border-color: #2b6e44;
 }
 
-/* Utilities */
+
 .mt-2 {
   margin-top: 8px;
 }
@@ -1577,7 +1574,7 @@
 
 
 
-/* --- Reservations Page --- */
+
 .reservations-list {
   display: flex;
   flex-direction: column;
@@ -1749,11 +1746,9 @@
   }
 }
 
-/* ============================================================
-   SHOPPING BUDGET & CHEAPER ALTERNATIVES STYLING
-   ============================================================ */
 
-/* Budget Panel */
+
+
 .budget-panel {
   background: #ffffff;
   border: 1px solid #e3dccb;
@@ -1785,7 +1780,7 @@
   margin: 0;
 }
 
-/* Budget Input Form */
+
 .budget-form {
   display: flex;
   gap: 10px;
@@ -1828,7 +1823,7 @@
   box-shadow: 0 0 0 2px rgba(27, 59, 43, 0.15);
 }
 
-/* Budget Metrics Grid */
+
 .budget-metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1878,7 +1873,7 @@
   color: #172b22;
 }
 
-/* Status Pills */
+
 .budget-status-pill {
   display: inline-block;
   padding: 4px 10px;
@@ -1914,7 +1909,7 @@
   }
 }
 
-/* Budget Progress Bar */
+
 .budget-progress-container {
   display: flex;
   flex-direction: column;
@@ -1950,7 +1945,7 @@
   font-weight: 500;
 }
 
-/* Cheaper Alternatives Section */
+
 .alternatives-section {
   background: #fffafa;
   border: 2px solid #fecaca;
@@ -2161,11 +2156,9 @@
   font-weight: 700;
 }
 
-/* ============================================================
-   COLLABORATIVE SHOPPING CART (SHARED CART) STYLES
-   ============================================================ */
 
-/* Lobby Grid */
+
+
 .shared-cart-lobby {
   display: flex;
   flex-direction: column;
@@ -2234,7 +2227,7 @@
   border-color: #1b3b2b;
 }
 
-/* My Active Rooms */
+
 .my-rooms-section {
   background: #ffffff;
   border: 1px solid #e3dccb;
@@ -2293,7 +2286,7 @@
   margin: 0;
 }
 
-/* Active Room Banner */
+
 .shared-room-banner {
   background: #ffffff;
   border: 1px solid #e3dccb;
@@ -2397,7 +2390,7 @@
   background: #b91c1c;
 }
 
-/* Members Bar */
+
 .members-bar {
   background: #fbf9f5;
   border: 1px solid #e3dccb;
@@ -2444,7 +2437,7 @@
   font-weight: 700;
 }
 
-/* Quick Add Bar */
+
 .quick-add-card {
   background: #ffffff;
   border: 1px solid #e3dccb;
@@ -2486,7 +2479,7 @@
   text-align: center;
 }
 
-/* Shared Cart Item Details */
+
 .added-by-tag {
   color: #0369a1;
   font-size: 12px;
@@ -2511,7 +2504,7 @@
   margin-top: 12px;
 }
 
-/* --- Cart Replacement Customization Modal --- */
+
 .modal-backdrop {
   position: fixed;
   top: 0;

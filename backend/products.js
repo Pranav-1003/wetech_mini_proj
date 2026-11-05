@@ -6,45 +6,45 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: [true, "productId is required"],
       unique: true,
-      trim: true,
+      trim: true
     },
     productName: {
       type: String,
       required: [true, "productName is required"],
-      trim: true,
+      trim: true
     },
     productPrice: {
       type: Number,
       required: [true, "productPrice is required"],
-      min: [0, "productPrice cannot be negative"],
+      min: [0, "productPrice cannot be negative"]
     },
     category: {
       type: String,
       required: [true, "category is required"],
-      trim: true,
+      trim: true
     },
     quantity: {
       type: Number,
       required: [true, "quantity is required"],
       min: [0, "quantity cannot be negative"],
-      default: 0,
+      default: 0
     },
     description: {
       type: String,
       required: [true, "description is required"],
-      trim: true,
+      trim: true
     },
-    // Backwards-compatibility aliases for legacy fields
+
     name: { type: String, trim: true },
     price: { type: Number },
-    image: { type: String, trim: true },
+    image: { type: String, trim: true }
   },
   {
-    timestamps: true,
+    timestamps: true
   }
 );
 
-// Keep productName/name and productPrice/price synchronized
+
 productSchema.pre("save", function () {
   if (!this.productName && this.name) {
     this.productName = this.name;

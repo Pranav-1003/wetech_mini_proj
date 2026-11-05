@@ -5,30 +5,30 @@ const reservationSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "userId is required"],
+      required: [true, "userId is required"]
     },
     productId: {
       type: String,
-      required: [true, "productId is required"],
+      required: [true, "productId is required"]
     },
     quantity: {
       type: Number,
       required: [true, "quantity is required"],
-      min: [1, "quantity must be at least 1"],
+      min: [1, "quantity must be at least 1"]
     },
     status: {
       type: String,
       enum: ["active", "expired", "cancelled", "completed"],
-      default: "active",
+      default: "active"
     },
     expiresAt: {
       type: Date,
-      required: [true, "expiresAt is required"],
+      required: [true, "expiresAt is required"]
     },
     createdAt: {
       type: Date,
-      default: Date.now,
-    },
+      default: Date.now
+    }
   }
 );
 

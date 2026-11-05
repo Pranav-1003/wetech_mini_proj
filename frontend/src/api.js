@@ -13,9 +13,9 @@ export const API_SHARED_CARTS_URL = "http://localhost:3000/api/shared-carts";
 export const API_BASE_URL = API_PRODUCTS_URL;
 export const DEFAULT_IMAGE = "https://static.thenounproject.com/png/1077596-200.png";
 
-export const getItemId = (item) => (item ? item.productId || item._id || item.id : "");
+export const getItemId = (item) => item ? item.productId || item._id || item.id : "";
 
-// Mapping from Product ID / Name to local downloaded images in frontend
+
 export const PRODUCT_IMAGE_MAP = {
   P1: "/images/casual shirt.jpeg",
   P2: "/images/formal pant.jpeg",
@@ -28,24 +28,24 @@ export const PRODUCT_IMAGE_MAP = {
   P107: "/images/wireless bluetooth headphone.png",
   P108: "/images/Smart Fitness Watch.jpeg",
   P109: "/images/Pro Running Shoes.avif",
-  P110: "/images/Insulated Stainless Steel Bottle.jpeg",
+  P110: "/images/Insulated Stainless Steel Bottle.jpeg"
 };
 
 export const getProductImage = (product) => {
   if (!product) return DEFAULT_IMAGE;
 
-  // 1. Direct image field if present
+
   if (product.image && typeof product.image === "string" && product.image.trim() !== "") {
     return product.image;
   }
 
-  // 2. Lookup by Product ID
+
   const pId = String(getItemId(product)).trim();
   if (PRODUCT_IMAGE_MAP[pId]) {
     return PRODUCT_IMAGE_MAP[pId];
   }
 
-  // 3. Fallback lookup by product name keywords
+
   const name = String(product.productName || product.name || "").toLowerCase().trim();
   if (name.includes("polo") || name.includes("t-shirt")) return "/images/cotton polo t-shirt.jpg";
   if (name.includes("jeans") || name.includes("denim")) return "/images/Slim-Fit Denim Jeans.webp";
@@ -63,7 +63,7 @@ export const getAuthHeaders = () => {
   const token = localStorage.getItem("lab8_token");
   const user = JSON.parse(localStorage.getItem("lab8_user") || "null");
   const headers = {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json"
   };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

@@ -29,46 +29,46 @@ async function runTests() {
     await mongoose.connect(MONGO_URI);
     console.log("Connected to MongoDB successfully.\n");
 
-    // Clean up previous test artifacts
+
     await User.deleteMany({ emailId: { $in: ["test_usera@example.com", "test_userb@example.com"] } });
     await Product.deleteMany({ productId: { $in: ["TEST_P1", "TEST_P2", "TEST_RACE"] } });
     await Reservation.deleteMany({ productId: { $in: ["TEST_P1", "TEST_P2", "TEST_RACE"] } });
 
-    // 1. Setup Test Users
+
     const userA = await User.create({
       username: "UserA",
       emailId: "test_usera@example.com",
       age: 25,
-      password: "password123",
+      password: "password123"
     });
 
     const userB = await User.create({
       username: "UserB",
       emailId: "test_userb@example.com",
       age: 28,
-      password: "password123",
+      password: "password123"
     });
 
-    // Setup Test Product
+
     const testProduct = await Product.create({
       productId: "TEST_P1",
       productName: "Test Reservation Gadget",
       productPrice: 50.0,
       category: "Test",
-      quantity: 5, // 5 units total
-      description: "A gadget used for testing reservation system",
+      quantity: 5,
+      description: "A gadget used for testing reservation system"
     });
 
     console.log("Setup complete: Created User A, User B, and Product TEST_P1 with 5 units stock.\n");
 
-    // Helper functions mirroring controller logic
+
     async function getAvailableStock(productId) {
       const prod = await Product.findOne({ productId });
       if (!prod) return 0;
       const activeRes = await Reservation.aggregate([
-        { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
-        { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
-      ]);
+      { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+      );
       const totalReserved = activeRes.length > 0 ? activeRes[0].totalReserved : 0;
       return Math.max(0, prod.quantity - totalReserved);
     }
@@ -77,7 +77,7 @@ async function runTests() {
       const product = await Product.findOne({ productId });
       if (!product) throw new Error("Product not found");
 
-      // Mark expired
+
       await Reservation.updateMany(
         { productId, status: "active", expiresAt: { $lte: new Date() } },
         { $set: { status: "expired" } }
@@ -97,18 +97,18 @@ async function runTests() {
         productId,
         quantity,
         status: "active",
-        expiresAt,
+        expiresAt
       });
 
-      // Strict cumulative ordering check for race conditions
+
       const activePrior = await Reservation.find({
         productId,
         status: "active",
         expiresAt: { $gt: new Date() },
         $or: [
-          { createdAt: { $lt: resv.createdAt } },
-          { createdAt: resv.createdAt, _id: { $lte: resv._id } },
-        ],
+        { createdAt: { $lt: resv.createdAt } },
+        { createdAt: resv.createdAt, _id: { $lte: resv._id } }]
+
       });
       const cumulative = activePrior.reduce((s, r) => s + r.quantity, 0);
 
@@ -153,7 +153,7 @@ async function runTests() {
           _id: reservationId,
           userId: user._id,
           status: "active",
-          expiresAt: { $gt: new Date() },
+          expiresAt: { $gt: new Date() }
         },
         { $set: { status: "completed" } },
         { new: true }
@@ -204,9 +204,9 @@ async function runTests() {
       return { reservation: updatedRes, product: updatedProduct };
     }
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 1: User A reserves a product successfully
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 1: User A reserves a product successfully");
     const resA = await reserveProduct(userA, "TEST_P1", 2);
     assert(resA && resA.status === "active", "Reservation created with status 'active'");
@@ -217,13 +217,13 @@ async function runTests() {
     assert(Math.round(expiryDiff) === 10, `Reservation duration is 10 minutes (actual: ${expiryDiff.toFixed(1)}m)`);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 2: User B tries to reserve the remaining unavailable stock
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 2: User B tries to reserve more than available stock");
     let overReserveFailed = false;
     try {
-      await reserveProduct(userB, "TEST_P1", 4); // Only 3 available
+      await reserveProduct(userB, "TEST_P1", 4);
     } catch (err) {
       overReserveFailed = true;
       assert(err.status === 400, "Server rejected over-reservation with 400 Bad Request");
@@ -232,9 +232,9 @@ async function runTests() {
     assert(overReserveFailed, "Over-reservation was successfully blocked");
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 3: User cancels an active reservation
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 3: User cancels an active reservation and releases stock");
     const cancelled = await cancelReservation(userA, resA._id);
     assert(cancelled.status === "cancelled", "Reservation status transitioned to 'cancelled'");
@@ -242,18 +242,18 @@ async function runTests() {
     assert(stockAfterCancel === 5, `Reserved quantity was released; available stock restored to 5 (actual: ${stockAfterCancel})`);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 4: Reservation expires after 10 minutes
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 4: Reservation expiration handling");
     const expiredRes = await Reservation.create({
       userId: userA._id,
       productId: "TEST_P1",
       quantity: 3,
       status: "active",
-      expiresAt: new Date(Date.now() - 5000), // Expired 5 seconds ago
+      expiresAt: new Date(Date.now() - 5000)
     });
-    // Run cleanup
+
     await Reservation.updateMany(
       { status: "active", expiresAt: { $lte: new Date() } },
       { $set: { status: "expired" } }
@@ -264,9 +264,9 @@ async function runTests() {
     assert(stockAfterExpiry === 5, `Expired reservation does not deduct from available stock (actual: ${stockAfterExpiry})`);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 5: User tries to complete an expired reservation
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 5: User tries to complete an expired reservation");
     let completeExpiredFailed = false;
     try {
@@ -279,9 +279,9 @@ async function runTests() {
     assert(completeExpiredFailed, "Expired reservation could not be completed");
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 6: User attempts to cancel another user's reservation
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 6: User B attempts to cancel User A's reservation");
     const userAActive = await reserveProduct(userA, "TEST_P1", 1);
     let crossCancelFailed = false;
@@ -293,27 +293,27 @@ async function runTests() {
       assert(err.message.includes("only cancel your own"), `Error message: "${err.message}"`);
     }
     assert(crossCancelFailed, "Unauthorized cancellation prevented");
-    // Clean up
+
     await cancelReservation(userA, userAActive._id);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 7: Two users simultaneously try to reserve the last available unit
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 7: Concurrency race condition - Two users simultaneously reserve last unit");
     const raceProduct = await Product.create({
       productId: "TEST_RACE",
       productName: "Last Unit Rare Item",
       productPrice: 199.99,
       category: "Rare",
-      quantity: 1, // Only 1 unit in stock
-      description: "Only one available in the world",
+      quantity: 1,
+      description: "Only one available in the world"
     });
 
     const results = await Promise.allSettled([
-      reserveProduct(userA, "TEST_RACE", 1),
-      reserveProduct(userB, "TEST_RACE", 1),
-    ]);
+    reserveProduct(userA, "TEST_RACE", 1),
+    reserveProduct(userB, "TEST_RACE", 1)]
+    );
 
     const fulfilled = results.filter((r) => r.status === "fulfilled");
     const rejected = results.filter((r) => r.status === "rejected");
@@ -326,9 +326,9 @@ async function runTests() {
     assert(activeRaceReservations === 1, `Total active reservations in database equals 1 (actual: ${activeRaceReservations})`);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 8: Reservation is completed and inventory decreases exactly once
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 8: Complete reservation during checkout - Stock decreases exactly once");
     const freshRes = await reserveProduct(userA, "TEST_P1", 2);
     const prodBefore = await Product.findOne({ productId: "TEST_P1" });
@@ -338,7 +338,7 @@ async function runTests() {
     assert(completionResult.reservation.status === "completed", "Reservation status transitioned to 'completed'");
     assert(completionResult.product.quantity === stockBefore - 2, `Product total stock decreased from ${stockBefore} to ${completionResult.product.quantity}`);
 
-    // Attempting to complete the same reservation again (double-completion prevention)
+
     let doubleCompleteFailed = false;
     try {
       await completeReservation(userA, freshRes._id);
@@ -351,11 +351,11 @@ async function runTests() {
     assert(prodAfter.quantity === stockBefore - 2, `Stock did NOT decrease twice; remains at ${prodAfter.quantity}`);
     console.log();
 
-    // -------------------------------------------------------------------------
-    // SCENARIO 9: JWT Authentication and Token Security Verification
-    // -------------------------------------------------------------------------
+
+
+
     console.log("TEST 9: JWT Authentication and Token Security Verification");
-    // 1. Generate valid JWT
+
     const validToken = jwt.sign(
       { userId: userA._id, emailId: userA.emailId, username: userA.username },
       JWT_SECRET,
@@ -365,7 +365,7 @@ async function runTests() {
     assert(decodedValid && decodedValid.userId.toString() === userA._id.toString(), "Valid JWT successfully signed and verified with correct payload");
     assert(decodedValid.exp > Math.floor(Date.now() / 1000), "JWT has valid future expiration timestamp");
 
-    // 2. Reject tampered token
+
     let tamperedRejected = false;
     try {
       const tamperedToken = validToken.slice(0, -6) + "xxxxxx";
@@ -376,13 +376,13 @@ async function runTests() {
     }
     assert(tamperedRejected, "Tampered JWT rejected successfully");
 
-    // 3. Reject expired token
+
     let expiredTokenRejected = false;
     try {
       const expiredJwt = jwt.sign(
         { userId: userA._id, emailId: userA.emailId },
         JWT_SECRET,
-        { expiresIn: "-1s" } // already expired
+        { expiresIn: "-1s" }
       );
       jwt.verify(expiredJwt, JWT_SECRET);
     } catch (err) {
@@ -392,7 +392,7 @@ async function runTests() {
     assert(expiredTokenRejected, "Expired JWT rejected successfully");
     console.log();
 
-    // Clean up test data
+
     await User.deleteMany({ emailId: { $in: ["test_usera@example.com", "test_userb@example.com"] } });
     await Product.deleteMany({ productId: { $in: ["TEST_P1", "TEST_P2", "TEST_RACE"] } });
     await Reservation.deleteMany({ productId: { $in: ["TEST_P1", "TEST_P2", "TEST_RACE"] } });
@@ -415,4 +415,3 @@ async function runTests() {
 }
 
 runTests();
-

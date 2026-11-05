@@ -15,7 +15,7 @@ function MyReservations({ currentUser, onLogout, cart = [] }) {
   const fetchReservations = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/reservations/my`, {
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (!res.ok) throw new Error("Failed to fetch reservations");
       const data = await res.json();
@@ -30,7 +30,7 @@ function MyReservations({ currentUser, onLogout, cart = [] }) {
 
   useEffect(() => {
     fetchReservations();
-    const interval = setInterval(fetchReservations, 30000); // refresh every 30s
+    const interval = setInterval(fetchReservations, 30000);
     return () => clearInterval(interval);
   }, [fetchReservations]);
 
@@ -39,7 +39,7 @@ function MyReservations({ currentUser, onLogout, cart = [] }) {
     try {
       const res = await fetch(`${API_BASE}/api/reservations/${id}`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to cancel");
@@ -55,7 +55,7 @@ function MyReservations({ currentUser, onLogout, cart = [] }) {
     try {
       const res = await fetch(`${API_BASE}/api/reservations/${id}/complete`, {
         method: "POST",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to complete");
@@ -82,51 +82,51 @@ function MyReservations({ currentUser, onLogout, cart = [] }) {
           </Link>
         </div>
 
-        {notification && (
-          <div className={`alert ${notification.type === "success" ? "alert-success" : "alert-error"}`}>
+        {notification &&
+        <div className={`alert ${notification.type === "success" ? "alert-success" : "alert-error"}`}>
             {notification.text}
           </div>
-        )}
+        }
 
-        {loading && (
-          <div className="status-container">
+        {loading &&
+        <div className="status-container">
             <div className="spinner"></div>
             <p className="status-title">Loading reservations...</p>
           </div>
-        )}
+        }
 
-        {error && !loading && (
-          <div className="status-container error-state">
+        {error && !loading &&
+        <div className="status-container error-state">
             <p className="status-title">Error</p>
             <p className="status-text">{error}</p>
             <button className="btn-primary" onClick={fetchReservations}>Retry</button>
           </div>
-        )}
+        }
 
-        {!loading && !error && reservations.length === 0 && (
-          <div className="status-container">
+        {!loading && !error && reservations.length === 0 &&
+        <div className="status-container">
             <p className="status-title">No Reservations</p>
             <p className="status-text">You haven't reserved any products yet.</p>
             <Link to="/products" className="btn-primary mt-2">Browse Products</Link>
           </div>
-        )}
+        }
 
-        {!loading && !error && reservations.length > 0 && (
-          <div className="reservations-list">
-            {reservations.map((r) => (
-              <ReservationCard
-                key={r._id}
-                reservation={r}
-                onCancel={handleCancel}
-                onComplete={handleComplete}
-                onExpire={fetchReservations}
-              />
-            ))}
+        {!loading && !error && reservations.length > 0 &&
+        <div className="reservations-list">
+            {reservations.map((r) =>
+          <ReservationCard
+            key={r._id}
+            reservation={r}
+            onCancel={handleCancel}
+            onComplete={handleComplete}
+            onExpire={fetchReservations} />
+
+          )}
           </div>
-        )}
+        }
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 function ReservationCard({ reservation, onCancel, onComplete, onExpire }) {
@@ -168,21 +168,21 @@ function ReservationCard({ reservation, onCancel, onComplete, onExpire }) {
           <span>Total: <strong>${(productPrice * r.quantity).toFixed(2)}</strong></span>
         </div>
 
-        {isActive ? (
-          <CountdownTimer expiresAt={r.expiresAt} onExpire={handleTimerExpire} />
-        ) : displayStatus === "expired" ? (
-          <div className="countdown-timer countdown-urgent">
+        {isActive ?
+        <CountdownTimer expiresAt={r.expiresAt} onExpire={handleTimerExpire} /> :
+        displayStatus === "expired" ?
+        <div className="countdown-timer countdown-urgent">
             <span className="countdown-label">Status:</span>
             <span className="countdown-value">Expired</span>
-          </div>
-        ) : null}
+          </div> :
+        null}
 
         <p className="reservation-date">
           Reserved: {new Date(r.createdAt).toLocaleString()}
         </p>
 
-        {isActive && (
-          <div className="reservation-actions">
+        {isActive &&
+        <div className="reservation-actions">
             <button className="btn-primary" onClick={() => onComplete(r._id)}>
               Complete Purchase
             </button>
@@ -190,10 +190,10 @@ function ReservationCard({ reservation, onCancel, onComplete, onExpire }) {
               Cancel Reservation
             </button>
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
 function CountdownTimer({ expiresAt, onExpire }) {
@@ -214,9 +214,9 @@ function CountdownTimer({ expiresAt, onExpire }) {
       }
 
       const minutes = Math.floor(diff / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
+      const seconds = Math.floor(diff % 60000 / 1000);
       setTimeLeft(`${minutes}m ${seconds.toString().padStart(2, "0")}s`);
-      setIsUrgent(diff < 2 * 60 * 1000); // urgent when < 2 min
+      setIsUrgent(diff < 2 * 60 * 1000);
     };
 
     update();
@@ -228,8 +228,8 @@ function CountdownTimer({ expiresAt, onExpire }) {
     <div className={`countdown-timer ${isUrgent ? "countdown-urgent" : ""}`}>
       <span className="countdown-label">Time Remaining:</span>
       <span className="countdown-value">{timeLeft}</span>
-    </div>
-  );
+    </div>);
+
 }
 
 export default MyReservations;

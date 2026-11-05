@@ -18,12 +18,12 @@ function Navbar({ currentUser, onLogout, cartCount = 0 }) {
         </Link>
 
         <nav className="header-nav">
-          {!currentUser ? (
-            <>
+          {!currentUser ?
+          <>
 
-            </>
-          ) : (
-            <>
+            </> :
+
+          <>
               <Link to="/products" className="nav-link">
                 Products
               </Link>
@@ -43,21 +43,21 @@ function Navbar({ currentUser, onLogout, cartCount = 0 }) {
                 Cart ({cartCount})
               </Link>
             </>
-          )}
+          }
         </nav>
 
         <div className="header-user">
-          {currentUser ? (
-            <div className="user-logged-box">
+          {currentUser ?
+          <div className="user-logged-box">
               <span className="user-greeting">
                 Signed in as: <strong>{currentUser.username}</strong>
               </span>
               <button onClick={handleLogoutClick} className="logout-btn">
                 Sign Out
               </button>
-            </div>
-          ) : (
-            <div className="auth-action-buttons">
+            </div> :
+
+          <div className="auth-action-buttons">
               <Link to="/login" className="btn-nav-login">
                 Login
               </Link>
@@ -65,11 +65,11 @@ function Navbar({ currentUser, onLogout, cartCount = 0 }) {
                 Register
               </Link>
             </div>
-          )}
+          }
         </div>
       </div>
-    </header>
-  );
+    </header>);
+
 }
 
 export default Navbar;

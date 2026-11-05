@@ -13,23 +13,23 @@ function ManageProducts() {
   const fetchProducts = () => {
     setLoading(true);
     fetch(API_PRODUCTS_URL, {
-      headers: getAuthHeaders(),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to load products: HTTP ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setProducts(Array.isArray(data) ? data : []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching products:", err);
-        setError(err.message || "Failed to load products.");
-        setLoading(false);
-      });
+      headers: getAuthHeaders()
+    }).
+    then((res) => {
+      if (!res.ok) {
+        throw new Error(`Failed to load products: ${res.status}`);
+      }
+      return res.json();
+    }).
+    then((data) => {
+      setProducts(Array.isArray(data) ? data : []);
+      setLoading(false);
+    }).
+    catch((err) => {
+      console.error("Error fetching products:", err);
+      setError(err.message || "Failed to load products.");
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -44,26 +44,26 @@ function ManageProducts() {
 
     fetch(`${API_PRODUCTS_URL}/${productId}`, {
       method: "DELETE",
-      headers: getAuthHeaders(),
-    })
-      .then((response) => {
-        if (!response.ok && response.status !== 204) {
-          throw new Error(`Failed to delete product: HTTP ${response.status}`);
-        }
-        setProducts((prev) => prev.filter((p) => getItemId(p) !== productId));
-        setActionMessage({
-          type: "success",
-          text: `Product "${productName}" deleted successfully!`,
-        });
-        setTimeout(() => setActionMessage(null), 3000);
-      })
-      .catch((err) => {
-        console.error("Delete error:", err);
-        setActionMessage({
-          type: "error",
-          text: err.message || "Failed to delete product.",
-        });
+      headers: getAuthHeaders()
+    }).
+    then((response) => {
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Failed to delete product (Status ${response.status})`);
+      }
+      setProducts((prev) => prev.filter((p) => getItemId(p) !== productId));
+      setActionMessage({
+        type: "success",
+        text: `Product "${productName}" deleted successfully!`
       });
+      setTimeout(() => setActionMessage(null), 3000);
+    }).
+    catch((err) => {
+      console.error("Delete error:", err);
+      setActionMessage({
+        type: "error",
+        text: err.message || "Failed to delete product."
+      });
+    });
   };
 
   const filteredProducts = products.filter((p) => {
@@ -88,15 +88,15 @@ function ManageProducts() {
         </div>
       </div>
 
-      {actionMessage && (
-        <div
-          className={`alert ${
-            actionMessage.type === "success" ? "alert-success" : "alert-error"
-          }`}
-        >
+      {actionMessage &&
+      <div
+        className={`alert ${
+        actionMessage.type === "success" ? "alert-success" : "alert-error"}`
+        }>
+        
           <span>{actionMessage.text}</span>
         </div>
-      )}
+      }
 
       <div className="toolbar">
         <input
@@ -104,42 +104,42 @@ function ManageProducts() {
           className="search-input"
           placeholder="Search by ID, Name, or Category..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+          onChange={(e) => setSearchTerm(e.target.value)} />
+        
         <button className="btn-secondary" onClick={fetchProducts}>
           Refresh
         </button>
       </div>
 
-      {loading && (
-        <div className="status-container">
+      {loading &&
+      <div className="status-container">
           <p className="status-title">Loading inventory...</p>
         </div>
-      )}
+      }
 
-      {error && !loading && (
-        <div className="status-container error-state">
+      {error && !loading &&
+      <div className="status-container error-state">
           <p className="status-title">Failed to Load Products</p>
           <p className="status-text">{error}</p>
           <button className="btn-primary" onClick={fetchProducts}>
             Retry
           </button>
         </div>
-      )}
+      }
 
-      {!loading && !error && filteredProducts.length === 0 && (
-        <div className="status-container empty-state">
+      {!loading && !error && filteredProducts.length === 0 &&
+      <div className="status-container empty-state">
           <p className="status-title">No products found</p>
           <p className="status-text">
-            {searchTerm
-              ? "No products matched your search filter."
-              : "No products exist in MongoDB. Click 'Add New Product' to create one."}
+            {searchTerm ?
+          "No products matched your search filter." :
+          "No products found. Click Add New Product to create one."}
           </p>
         </div>
-      )}
+      }
 
-      {!loading && !error && filteredProducts.length > 0 && (
-        <div className="table-responsive">
+      {!loading && !error && filteredProducts.length > 0 &&
+      <div className="table-responsive">
           <table className="inventory-table">
             <thead>
               <tr>
@@ -154,15 +154,15 @@ function ManageProducts() {
             </thead>
             <tbody>
               {filteredProducts.map((p) => {
-                const pId = getItemId(p);
-                const pName = p.productName || p.name || "N/A";
-                const pPrice = Number(p.productPrice ?? p.price ?? 0);
-                const pCat = p.category || "General";
-                const pQty = p.quantity !== undefined ? p.quantity : "N/A";
-                const pDesc = p.description || "-";
+              const pId = getItemId(p);
+              const pName = p.productName || p.name || "N/A";
+              const pPrice = Number(p.productPrice ?? p.price ?? 0);
+              const pCat = p.category || "General";
+              const pQty = p.quantity !== undefined ? p.quantity : "N/A";
+              const pDesc = p.description || "-";
 
-                return (
-                  <tr key={pId}>
+              return (
+                <tr key={pId}>
                     <td>
                       <span className="font-mono badge-id">{pId}</span>
                     </td>
@@ -187,23 +187,23 @@ function ManageProducts() {
                           Edit
                         </Link>
                         <button
-                          type="button"
-                          className="btn-delete"
-                          onClick={() => handleDelete(pId, pName)}
-                        >
+                        type="button"
+                        className="btn-delete"
+                        onClick={() => handleDelete(pId, pName)}>
+                        
                           Delete
                         </button>
                       </div>
                     </td>
-                  </tr>
-                );
-              })}
+                  </tr>);
+
+            })}
             </tbody>
           </table>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default ManageProducts;

@@ -8,8 +8,8 @@ import {
   API_BUDGET_URL,
   API_BUDGET_ALTERNATIVES_URL,
   API_CART_URL,
-  API_CART_REPLACE_URL,
-} from "../api";
+  API_CART_REPLACE_URL } from
+"../api";
 import Navbar from "../components/Navbar";
 import "../App.css";
 
@@ -20,42 +20,42 @@ function Cart({
   setCart,
   updateQuantity,
   removeFromCart,
-  clearCart,
+  clearCart
 }) {
   const navigate = useNavigate();
 
-  // Order & Checkout States
-  const [orderStatus, setOrderStatus] = useState(null); // { type: "success"|"error", message }
+
+  const [orderStatus, setOrderStatus] = useState(null);
   const [placing, setPlacing] = useState(false);
 
-  // Budget States
+
   const [budget, setBudget] = useState(0);
   const [budgetInput, setBudgetInput] = useState("");
   const [isEditingBudget, setIsEditingBudget] = useState(false);
   const [savingBudget, setSavingBudget] = useState(false);
   const [budgetFeedback, setBudgetFeedback] = useState(null);
 
-  // Alternatives and Evaluation States
+
   const [evaluation, setEvaluation] = useState({
     budget: 0,
     cartTotal: 0,
     remainingBudget: 0,
     exceededAmount: 0,
     isExceeded: false,
-    alternatives: [],
+    alternatives: []
   });
   const [loadingAlternatives, setLoadingAlternatives] = useState(false);
   const [replacingId, setReplacingId] = useState(null);
   const [actionNotice, setActionNotice] = useState(null);
 
-  // Interactive Replacement Customization Modal State
+
   const [replacementModal, setReplacementModal] = useState({
     isOpen: false,
     originalProduct: null,
     suggestedProduct: null,
-    removeQuantities: {}, // { [productId]: numberToExcludeFromCart }
+    removeQuantities: {},
     addProduct: null,
-    saving: false,
+    saving: false
   });
 
   const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
@@ -72,20 +72,20 @@ function Cart({
 
     const items = cart.map((item) => ({
       productId: getItemId(item),
-      quantity: item.quantity || 1,
+      quantity: item.quantity || 1
     }));
 
     try {
       const response = await fetch(API_ORDERS_URL, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ items }),
+        body: JSON.stringify({ items })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `Order failed (HTTP ${response.status})`);
+        throw new Error(data.message || `Order failed (${response.status})`);
       }
 
       setOrderStatus({ type: "success", message: data.message || "Order placed successfully! Product quantities updated." });
@@ -93,16 +93,16 @@ function Cart({
     } catch (err) {
       setOrderStatus({
         type: "error",
-        message: err.message.includes("Failed to fetch")
-          ? "Cannot connect to backend server. Please ensure it is running."
-          : err.message,
+        message: err.message.includes("Failed to fetch") ?
+        "Cannot connect to backend server. Please ensure it is running." :
+        err.message
       });
     } finally {
       setPlacing(false);
     }
   };
 
-  // 1. Fetch User's Persisted Budget from MongoDB on Mount
+
   const fetchBudget = useCallback(async () => {
     const token = localStorage.getItem("lab8_token");
     if (!token) return;
@@ -110,7 +110,7 @@ function Cart({
     try {
       const res = await fetch(API_BUDGET_URL, {
         method: "GET",
-        headers: getAuthHeaders(),
+        headers: getAuthHeaders()
       });
       if (res.ok) {
         const data = await res.json();
@@ -123,7 +123,7 @@ function Cart({
     }
   }, []);
 
-  // 2. Evaluate Cart Total & Alternatives against Backend (Actual MongoDB Prices)
+
   const evaluateBudgetAndAlternatives = useCallback(
     async (currentCart = cart) => {
       const token = localStorage.getItem("lab8_token");
@@ -134,7 +134,7 @@ function Cart({
           remainingBudget: Math.max(0, budget - frontendTotal),
           exceededAmount: budget > 0 && frontendTotal > budget ? frontendTotal - budget : 0,
           isExceeded: budget > 0 && frontendTotal > budget,
-          alternatives: [],
+          alternatives: []
         });
         return;
       }
@@ -143,13 +143,13 @@ function Cart({
       try {
         const payloadCart = currentCart.map((item) => ({
           productId: getItemId(item),
-          quantity: Number(item.quantity || 1),
+          quantity: Number(item.quantity || 1)
         }));
 
         const res = await fetch(API_BUDGET_ALTERNATIVES_URL, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ cart: payloadCart }),
+          body: JSON.stringify({ cart: payloadCart })
         });
 
         if (res.ok) {
@@ -179,7 +179,7 @@ function Cart({
     evaluateBudgetAndAlternatives(cart);
   }, [cart, budget, evaluateBudgetAndAlternatives]);
 
-  // 3. Save / Update Budget Handler
+
   const handleSaveBudget = async (e) => {
     e.preventDefault();
     setBudgetFeedback(null);
@@ -195,7 +195,7 @@ function Cart({
       const res = await fetch(API_BUDGET_URL, {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify({ budget: val }),
+        body: JSON.stringify({ budget: val })
       });
 
       const data = await res.json().catch(() => ({}));
@@ -205,7 +205,7 @@ function Cart({
         setIsEditingBudget(false);
         setBudgetFeedback({
           type: "success",
-          message: val > 0 ? `Budget updated to $${val.toFixed(2)}.` : "Budget reset to $0.00.",
+          message: val > 0 ? `Budget updated to $${val.toFixed(2)}.` : "Budget reset to $0.00."
         });
         setTimeout(() => setBudgetFeedback(null), 3000);
       } else {
@@ -218,14 +218,14 @@ function Cart({
     }
   };
 
-  // 4. Replacement Modal Handlers
+
   const openReplacementModal = (originalProduct, suggestion) => {
     const origId = getItemId(originalProduct);
     const sugId = getItemId(suggestion);
     const maxStock = Number(suggestion.availableStock !== undefined ? suggestion.availableStock : 99);
     const initialQty = Math.min(Number(originalProduct.quantity || 1), maxStock > 0 ? maxStock : 1) || 1;
 
-    // Initialize removeQuantities: target product defaults to its full cart quantity, others to 0
+
     const initialRemoveQuantities = {};
     cart.forEach((item) => {
       const pId = getItemId(item);
@@ -244,11 +244,11 @@ function Cart({
         image: suggestion.image,
         category: suggestion.category,
         quantity: initialQty,
-        checked: true, // By default, select to add
+        checked: true,
         maxStock,
-        savings: Number(suggestion.savings || 0),
+        savings: Number(suggestion.savings || 0)
       },
-      saving: false,
+      saving: false
     });
   };
 
@@ -256,7 +256,7 @@ function Cart({
     setReplacementModal((prev) => ({
       ...prev,
       isOpen: false,
-      saving: false,
+      saving: false
     }));
   };
 
@@ -267,8 +267,8 @@ function Cart({
         ...prev,
         removeQuantities: {
           ...prev.removeQuantities,
-          [productId]: currentQty > 0 ? 0 : totalCartQty,
-        },
+          [productId]: currentQty > 0 ? 0 : totalCartQty
+        }
       };
     });
   };
@@ -281,8 +281,8 @@ function Cart({
         ...prev,
         removeQuantities: {
           ...prev.removeQuantities,
-          [productId]: next,
-        },
+          [productId]: next
+        }
       };
     });
   };
@@ -292,8 +292,8 @@ function Cart({
       ...prev,
       addProduct: {
         ...prev.addProduct,
-        checked: !prev.addProduct.checked,
-      },
+        checked: !prev.addProduct.checked
+      }
     }));
   };
 
@@ -307,8 +307,8 @@ function Cart({
         ...prev,
         addProduct: {
           ...prev.addProduct,
-          quantity: next,
-        },
+          quantity: next
+        }
       };
     });
   };
@@ -321,7 +321,7 @@ function Cart({
     const totalUnitsRemoved = Object.values(removeQuantities).reduce((sum, q) => sum + (q || 0), 0);
     const willAdd = addProduct && addProduct.checked && addProduct.quantity > 0;
 
-    // Validation: make sure at least one action is selected
+
     if (totalUnitsRemoved === 0 && !willAdd) {
       alert("No changes selected. Please select at least one product quantity to remove or add, or click Cancel.");
       return;
@@ -329,7 +329,7 @@ function Cart({
 
     setReplacementModal((prev) => ({ ...prev, saving: true }));
 
-    // 1. Construct the new cart based on dynamic remove quantities
+
     let updatedCart = [];
     cart.forEach((item) => {
       const pId = getItemId(item);
@@ -339,12 +339,12 @@ function Cart({
       if (remainingQty > 0) {
         updatedCart.push({
           ...item,
-          quantity: remainingQty,
+          quantity: remainingQty
         });
       }
     });
 
-    // 2. If addProduct is checked, add it to updatedCart
+
     if (willAdd) {
       const existingIdx = updatedCart.findIndex(
         (item) => String(getItemId(item)) === String(addProduct.productId)
@@ -352,9 +352,9 @@ function Cart({
 
       if (existingIdx !== -1) {
         updatedCart = updatedCart.map((item, idx) =>
-          idx === existingIdx
-            ? { ...item, quantity: (item.quantity || 1) + addProduct.quantity }
-            : item
+        idx === existingIdx ?
+        { ...item, quantity: (item.quantity || 1) + addProduct.quantity } :
+        item
         );
       } else {
         updatedCart.push({
@@ -365,30 +365,30 @@ function Cart({
           productPrice: addProduct.price,
           quantity: addProduct.quantity,
           category: addProduct.category,
-          image: addProduct.image,
+          image: addProduct.image
         });
       }
     }
 
-    // 3. Update React state and localStorage immediately
+
     if (setCart) {
       setCart(updatedCart);
     }
     localStorage.setItem("lab8_cart", JSON.stringify(updatedCart));
 
-    // 4. Synchronize with backend API (/api/cart)
+
     try {
       const token = localStorage.getItem("lab8_token");
       if (token) {
         const payloadCart = updatedCart.map((item) => ({
           productId: getItemId(item),
-          quantity: Number(item.quantity || 1),
+          quantity: Number(item.quantity || 1)
         }));
 
         const res = await fetch(API_CART_URL, {
           method: "POST",
           headers: getAuthHeaders(),
-          body: JSON.stringify({ cart: payloadCart }),
+          body: JSON.stringify({ cart: payloadCart })
         });
 
         if (res.ok) {
@@ -403,7 +403,7 @@ function Cart({
               cartTotal: data.cartTotal,
               remainingBudget: data.remainingBudget,
               exceededAmount: data.exceededAmount,
-              isExceeded: data.isExceeded,
+              isExceeded: data.isExceeded
             }));
           }
         }
@@ -412,7 +412,7 @@ function Cart({
       console.error("Cart sync error:", err);
     }
 
-    // 5. Provide feedback to the user
+
     let msg = "Cart updated successfully!";
     if (totalUnitsRemoved > 0 && willAdd) {
       msg = `Cart updated! Removed ${totalUnitsRemoved} unit(s) and added ${addProduct.quantity}x '${addProduct.name}'.`;
@@ -425,30 +425,30 @@ function Cart({
     setActionNotice({ type: "success", message: msg });
     setTimeout(() => setActionNotice(null), 5000);
 
-    // 6. Close the modal
+
     closeReplacementModal();
 
-    // 7. Re-evaluate alternatives with new cart
+
     evaluateBudgetAndAlternatives(updatedCart);
   };
 
-  // Calculations for display
+
   const activeCartTotal = evaluation.cartTotal > 0 ? evaluation.cartTotal : frontendTotal;
   const isExceeded = budget > 0 && activeCartTotal > budget;
   const remainingBudget = Math.max(0, Number((budget - activeCartTotal).toFixed(2)));
   const exceededAmount = isExceeded ? Number((activeCartTotal - budget).toFixed(2)) : 0;
 
-  // Progress Bar Percentage
-  const progressPercent = budget > 0 ? Math.min(100, (activeCartTotal / budget) * 100) : 0;
+
+  const progressPercent = budget > 0 ? Math.min(100, activeCartTotal / budget * 100) : 0;
   const progressColor =
-    progressPercent > 100 || isExceeded ? "#dc2626" : progressPercent >= 80 ? "#d97706" : "#16a34a";
+  progressPercent > 100 || isExceeded ? "#dc2626" : progressPercent >= 80 ? "#d97706" : "#16a34a";
 
   return (
     <div className="page-wrapper">
       <Navbar currentUser={currentUser} onLogout={onLogout} cartCount={totalItems} />
 
       <main className="content-container">
-        {/* Cart Page Header */}
+        {}
         <div className="cart-header">
           <Link to="/products" className="back-btn">
             &larr; Continue Shopping
@@ -456,30 +456,30 @@ function Cart({
           <h2 className="cart-title">Shopping Cart ({totalItems} items)</h2>
         </div>
 
-        {/* Order Status Feedback */}
-        {orderStatus && (
-          <div
-            className={`alert ${
-              orderStatus.type === "success" ? "alert-success" : "alert-error"
-            }`}
-            style={{ marginBottom: "20px" }}
-          >
+        {}
+        {orderStatus &&
+        <div
+          className={`alert ${
+          orderStatus.type === "success" ? "alert-success" : "alert-error"}`
+          }
+          style={{ marginBottom: "20px" }}>
+          
             <span>{orderStatus.message}</span>
           </div>
-        )}
+        }
 
-        {/* Global Action / Feedback Toast */}
-        {actionNotice && (
-          <div
-            className={`alert ${actionNotice.type === "success" ? "alert-success" : "alert-error"}`}
-            style={{ marginBottom: "20px" }}
-          >
+        {}
+        {actionNotice &&
+        <div
+          className={`alert ${actionNotice.type === "success" ? "alert-success" : "alert-error"}`}
+          style={{ marginBottom: "20px" }}>
+          
             {actionNotice.message}
           </div>
-        )}
+        }
 
-        {cart.length === 0 ? (
-          <div className="status-container">
+        {cart.length === 0 ?
+        <div className="status-container">
             <p className="status-title">Your Cart is Empty</p>
             <p className="status-text">
               Looks like you haven't added any products to your cart yet.
@@ -487,10 +487,10 @@ function Cart({
             <Link to="/products" className="btn-primary" style={{ marginTop: "16px" }}>
               Explore Products
             </Link>
-          </div>
-        ) : (
-          <>
-            {/* FEATURE 1: SHOPPING BUDGET LIMIT PANEL */}
+          </div> :
+
+        <>
+            {}
             <section className="budget-panel">
               <div className="budget-panel-header">
                 <div>
@@ -500,62 +500,62 @@ function Cart({
                     it and find cheaper alternatives.
                   </p>
                 </div>
-                {!isEditingBudget && budget > 0 && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => setIsEditingBudget(true)}
-                    style={{ padding: "6px 14px", fontSize: "13px" }}
-                  >
+                {!isEditingBudget && budget > 0 &&
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setIsEditingBudget(true)}
+                style={{ padding: "6px 14px", fontSize: "13px" }}>
+                
                     Edit Budget
                   </button>
-                )}
+              }
               </div>
 
-              {/* Budget Setting Form */}
-              {(isEditingBudget || budget === 0) && (
-                <form onSubmit={handleSaveBudget} className="budget-form">
+              {}
+              {(isEditingBudget || budget === 0) &&
+            <form onSubmit={handleSaveBudget} className="budget-form">
                   <div className="budget-input-wrapper">
                     <span className="budget-currency-symbol">$</span>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className="budget-input"
-                      placeholder="e.g. 100.00"
-                      value={budgetInput}
-                      onChange={(e) => setBudgetInput(e.target.value)}
-                      required
-                    />
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="budget-input"
+                  placeholder="e.g. 100.00"
+                  value={budgetInput}
+                  onChange={(e) => setBudgetInput(e.target.value)}
+                  required />
+                
                   </div>
                   <button type="submit" className="btn-primary" disabled={savingBudget}>
                     {savingBudget ? "Saving..." : "Save Budget"}
                   </button>
-                  {budget > 0 && (
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => {
-                        setBudgetInput(String(budget));
-                        setIsEditingBudget(false);
-                      }}
-                    >
+                  {budget > 0 &&
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setBudgetInput(String(budget));
+                  setIsEditingBudget(false);
+                }}>
+                
                       Cancel
                     </button>
-                  )}
+              }
                 </form>
-              )}
+            }
 
-              {budgetFeedback && (
-                <div
-                  className={`alert ${budgetFeedback.type === "success" ? "alert-success" : "alert-error"}`}
-                  style={{ marginTop: "12px", padding: "8px 14px", fontSize: "13px" }}
-                >
+              {budgetFeedback &&
+            <div
+              className={`alert ${budgetFeedback.type === "success" ? "alert-success" : "alert-error"}`}
+              style={{ marginTop: "12px", padding: "8px 14px", fontSize: "13px" }}>
+              
                   {budgetFeedback.message}
                 </div>
-              )}
+            }
 
-              {/* Budget Metric Indicators */}
+              {}
               <div className="budget-metrics-grid">
                 <div className="budget-metric-card">
                   <span className="metric-label">Budget Limit</span>
@@ -569,8 +569,8 @@ function Cart({
                   <span className="metric-value font-mono">${activeCartTotal.toFixed(2)}</span>
                 </div>
 
-                {budget > 0 && (
-                  <div className={`budget-metric-card ${isExceeded ? "metric-card-exceeded" : "metric-card-within"}`}>
+                {budget > 0 &&
+              <div className={`budget-metric-card ${isExceeded ? "metric-card-exceeded" : "metric-card-within"}`}>
                     <span className="metric-label">
                       {isExceeded ? "Exceeded Amount" : "Remaining Budget"}
                     </span>
@@ -578,53 +578,53 @@ function Cart({
                       {isExceeded ? `+$${exceededAmount.toFixed(2)}` : `$${remainingBudget.toFixed(2)}`}
                     </span>
                   </div>
-                )}
+              }
 
                 <div className="budget-metric-card">
                   <span className="metric-label">Status</span>
                   <div style={{ marginTop: "4px" }}>
-                    {budget === 0 ? (
-                      <span className="budget-status-pill pill-neutral">No Limit</span>
-                    ) : isExceeded ? (
-                      <span className="budget-status-pill pill-exceeded">Budget Exceeded</span>
-                    ) : (
-                      <span className="budget-status-pill pill-within">Within Budget</span>
-                    )}
+                    {budget === 0 ?
+                  <span className="budget-status-pill pill-neutral">No Limit</span> :
+                  isExceeded ?
+                  <span className="budget-status-pill pill-exceeded">Budget Exceeded</span> :
+
+                  <span className="budget-status-pill pill-within">Within Budget</span>
+                  }
                   </div>
                 </div>
               </div>
 
-              {/* Progress Bar */}
-              {budget > 0 && (
-                <div className="budget-progress-container">
+              {}
+              {budget > 0 &&
+            <div className="budget-progress-container">
                   <div className="budget-progress-labels">
-                    <span>Spend: ${(activeCartTotal).toFixed(2)}</span>
+                    <span>Spend: ${activeCartTotal.toFixed(2)}</span>
                     <span>
-                      {((activeCartTotal / budget) * 100).toFixed(0)}% of ${budget.toFixed(2)}
+                      {(activeCartTotal / budget * 100).toFixed(0)}% of ${budget.toFixed(2)}
                     </span>
                   </div>
                   <div className="budget-progress-track">
                     <div
-                      className="budget-progress-bar"
-                      style={{
-                        width: `${Math.min(100, progressPercent)}%`,
-                        backgroundColor: progressColor,
-                      }}
-                    />
+                  className="budget-progress-bar"
+                  style={{
+                    width: `${Math.min(100, progressPercent)}%`,
+                    backgroundColor: progressColor
+                  }} />
+                
                   </div>
-                  {isExceeded && (
-                    <p className="budget-exceeded-notice">
-                      ⚠️ Cart exceeds budget by <strong>${exceededAmount.toFixed(2)}</strong>.
+                  {isExceeded &&
+              <p className="budget-exceeded-notice">
+                       Cart exceeds budget by <strong>${exceededAmount.toFixed(2)}</strong>.
                       Review the recommended alternatives below to reduce costs!
                     </p>
-                  )}
+              }
                 </div>
-              )}
+            }
             </section>
 
-            {/* FEATURE 2: CHEAPER WORTHY ALTERNATIVES SECTION (Only displayed when cart exceeds budget) */}
-            {isExceeded && (
-              <section className="alternatives-section">
+            {}
+            {isExceeded &&
+          <section className="alternatives-section">
                 <div className="alternatives-header">
                   <div>
                     <h3 className="alternatives-title">Cheaper Worthy Alternatives</h3>
@@ -634,20 +634,20 @@ function Cart({
                       Swap with these verified in-stock alternatives to bring your total down:
                     </p>
                   </div>
-                  {loadingAlternatives && (
-                    <span className="alternatives-loading-badge">Evaluating catalog...</span>
-                  )}
+                  {loadingAlternatives &&
+              <span className="alternatives-loading-badge">Evaluating catalog...</span>
+              }
                 </div>
 
-                {evaluation.alternatives && evaluation.alternatives.length > 0 ? (
-                  <div className="alternatives-list">
+                {evaluation.alternatives && evaluation.alternatives.length > 0 ?
+            <div className="alternatives-list">
                     {evaluation.alternatives.map((item) => {
-                      const orig = item.originalProduct;
-                      const origId = getItemId(orig);
+                const orig = item.originalProduct;
+                const origId = getItemId(orig);
 
-                      return (
-                        <div key={origId} className="alternative-group-card">
-                          {/* Original Product Banner */}
+                return (
+                  <div key={origId} className="alternative-group-card">
+                          {}
                           <div className="original-item-banner">
                             <span className="orig-badge">In Your Cart</span>
                             <span className="orig-name">{orig.name || orig.productName}</span>
@@ -658,19 +658,19 @@ function Cart({
                             </span>
                           </div>
 
-                          {/* Suggested Alternatives Grid */}
+                          {}
                           <div className="suggestions-grid">
                             {item.suggestions.map((sug) => {
-                              const isReplacing = replacingId === sug.productId;
+                        const isReplacing = replacingId === sug.productId;
 
-                              return (
-                                <div key={sug.productId} className="suggestion-card">
+                        return (
+                          <div key={sug.productId} className="suggestion-card">
                                   <div className="suggestion-img-box">
                                     <img
-                                      src={getProductImage(sug)}
-                                      alt={sug.name || sug.productName}
-                                      className="suggestion-img"
-                                    />
+                                src={getProductImage(sug)}
+                                alt={sug.name || sug.productName}
+                                className="suggestion-img" />
+                              
                                   </div>
 
                                   <div className="suggestion-body">
@@ -684,14 +684,14 @@ function Cart({
                                       </span>
                                     </div>
 
-                                    {orig.quantity > 1 && (
-                                      <div className="sug-total-savings">
+                                    {orig.quantity > 1 &&
+                              <div className="sug-total-savings">
                                         Total Savings:{" "}
                                         <strong>
                                           ${Number(sug.totalSavings || sug.savings * orig.quantity).toFixed(2)}
                                         </strong>
                                       </div>
-                                    )}
+                              }
 
                                     <div className="sug-stock-info">
                                       <span className="stock-dot in-stock"></span>
@@ -699,42 +699,42 @@ function Cart({
                                     </div>
 
                                     <button
-                                      type="button"
-                                      className="btn-replace-product"
-                                      onClick={() => openReplacementModal(orig, sug)}
-                                    >
+                                type="button"
+                                className="btn-replace-product"
+                                onClick={() => openReplacementModal(orig, sug)}>
+                                
                                       Replace Product
                                     </button>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                </div>);
+
+                      })}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="status-container" style={{ padding: "20px" }}>
+                        </div>);
+
+              })}
+                  </div> :
+
+            <div className="status-container" style={{ padding: "20px" }}>
                     <p className="status-text">
                       No cheaper alternatives found in the current catalog for your cart items.
                     </p>
                   </div>
-                )}
+            }
               </section>
-            )}
+          }
 
-            {/* Standard Cart Items List & Order Summary */}
+            {}
             <div className="cart-layout">
               <div className="cart-list">
                 {cart.map((item) => {
-                  const pId = getItemId(item);
-                  const title = item.name || item.productName || item.title || "Product";
-                  const image = getProductImage(item);
-                  const price = Number(item.price !== undefined ? item.price : item.productPrice || 0);
+                const pId = getItemId(item);
+                const title = item.name || item.productName || item.title || "Product";
+                const image = getProductImage(item);
+                const price = Number(item.price !== undefined ? item.price : item.productPrice || 0);
 
-                  return (
-                    <div className="cart-item" key={pId}>
+                return (
+                  <div className="cart-item" key={pId}>
                       <div className="cart-image-container">
                         <img src={image} alt={title} className="cart-image" />
                       </div>
@@ -745,38 +745,38 @@ function Cart({
 
                         <div className="cart-controls">
                           <button
-                            className="qty-btn"
-                            onClick={() => updateQuantity && updateQuantity(pId, -1)}
-                            aria-label="Decrease quantity"
-                          >
+                          className="qty-btn"
+                          onClick={() => updateQuantity && updateQuantity(pId, -1)}
+                          aria-label="Decrease quantity">
+                          
                             -
                           </button>
                           <span className="qty-display">{item.quantity}</span>
                           <button
-                            className="qty-btn"
-                            onClick={() => updateQuantity && updateQuantity(pId, 1)}
-                            aria-label="Increase quantity"
-                          >
+                          className="qty-btn"
+                          onClick={() => updateQuantity && updateQuantity(pId, 1)}
+                          aria-label="Increase quantity">
+                          
                             +
                           </button>
 
-                          {removeFromCart && (
-                            <button className="remove-btn" onClick={() => removeFromCart(pId)}>
+                          {removeFromCart &&
+                        <button className="remove-btn" onClick={() => removeFromCart(pId)}>
                               Remove
                             </button>
-                          )}
+                        }
                         </div>
                       </div>
 
                       <div className="cart-subtotal">
                         ${(price * (item.quantity || 1)).toFixed(2)}
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>);
+
+              })}
               </div>
 
-              {/* Order Summary Card */}
+              {}
               <div className="cart-summary-card">
                 <h3 className="summary-heading">Order Summary</h3>
 
@@ -790,95 +790,95 @@ function Cart({
                   <span>Free</span>
                 </div>
 
-                {budget > 0 && (
-                  <div className="summary-row" style={{ paddingTop: "8px", borderTop: "1px dashed #e3dccb" }}>
+                {budget > 0 &&
+              <div className="summary-row" style={{ paddingTop: "8px", borderTop: "1px dashed #e3dccb" }}>
                     <span>Budget Limit</span>
                     <span className="font-mono">${budget.toFixed(2)}</span>
                   </div>
-                )}
+              }
 
                 <div className="summary-total">
                   <span>Estimated Total</span>
                   <span className="font-mono">${activeCartTotal.toFixed(2)}</span>
                 </div>
 
-                {budget > 0 && (
-                  <div
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: "6px",
-                      marginBottom: "16px",
-                      fontSize: "13px",
-                      backgroundColor: isExceeded ? "#fee2e2" : "#dcfce7",
-                      color: isExceeded ? "#b91c1c" : "#15803d",
-                      fontWeight: "600",
-                      textAlign: "center",
-                    }}
-                  >
-                    {isExceeded
-                      ? `Exceeds budget by $${exceededAmount.toFixed(2)}`
-                      : `Within budget ($${remainingBudget.toFixed(2)} left)`}
+                {budget > 0 &&
+              <div
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  marginBottom: "16px",
+                  fontSize: "13px",
+                  backgroundColor: isExceeded ? "#fee2e2" : "#dcfce7",
+                  color: isExceeded ? "#b91c1c" : "#15803d",
+                  fontWeight: "600",
+                  textAlign: "center"
+                }}>
+                
+                    {isExceeded ?
+                `Exceeds budget by $${exceededAmount.toFixed(2)}` :
+                `Within budget ($${remainingBudget.toFixed(2)} left)`}
                   </div>
-                )}
+              }
 
                 <button
-                  className="checkout-btn"
-                  onClick={handleCheckout}
-                  disabled={placing}
-                >
+                className="checkout-btn"
+                onClick={handleCheckout}
+                disabled={placing}>
+                
                   {placing ? "Placing Order..." : "Proceed to Checkout"}
                 </button>
 
-                {clearCart && (
-                  <button className="clear-cart-btn" onClick={clearCart}>
+                {clearCart &&
+              <button className="clear-cart-btn" onClick={clearCart}>
                     Clear Cart
                   </button>
-                )}
+              }
 
                 <div
-                  style={{
-                    marginTop: "16px",
-                    paddingTop: "14px",
-                    borderTop: "1px dashed #e3dccb",
-                    textAlign: "center",
-                  }}
-                >
+                style={{
+                  marginTop: "16px",
+                  paddingTop: "14px",
+                  borderTop: "1px dashed #e3dccb",
+                  textAlign: "center"
+                }}>
+                
                   <span style={{ fontSize: "13px", color: "#54665c" }}>Have reserved products? </span>
                   <Link
-                    to="/reservations"
-                    style={{ fontSize: "13px", fontWeight: "600", color: "#1b3b2b" }}
-                  >
+                  to="/reservations"
+                  style={{ fontSize: "13px", fontWeight: "600", color: "#1b3b2b" }}>
+                  
                     My Reservations &rarr;
                   </Link>
                 </div>
 
                 <div
-                  style={{
-                    marginTop: "10px",
-                    paddingTop: "10px",
-                    borderTop: "1px dashed #e3dccb",
-                    textAlign: "center",
-                  }}
-                >
+                style={{
+                  marginTop: "10px",
+                  paddingTop: "10px",
+                  borderTop: "1px dashed #e3dccb",
+                  textAlign: "center"
+                }}>
+                
                   <span style={{ fontSize: "13px", color: "#54665c" }}>Shopping with friends? </span>
                   <Link
-                    to="/shared-cart"
-                    style={{ fontSize: "13px", fontWeight: "600", color: "#1b3b2b" }}
-                  >
-                    Try Shared Cart 👥 &rarr;
+                  to="/shared-cart"
+                  style={{ fontSize: "13px", fontWeight: "600", color: "#1b3b2b" }}>
+                  
+                    Try Shared Cart  &rarr;
                   </Link>
                 </div>
               </div>
             </div>
           </>
-        )}
+        }
       </main>
 
-      {/* Interactive Replacement Customization Modal */}
-      {replacementModal.isOpen && (
-        <div className="modal-backdrop" onClick={closeReplacementModal}>
+      {}
+      {replacementModal.isOpen &&
+      <div className="modal-backdrop" onClick={closeReplacementModal}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
+            {}
             <div className="modal-header">
               <div>
                 <h3 className="modal-title">Customize Product Replacement</h3>
@@ -887,18 +887,18 @@ function Cart({
                 </p>
               </div>
               <button
-                type="button"
-                className="modal-close-btn"
-                onClick={closeReplacementModal}
-                aria-label="Close"
-              >
+              type="button"
+              className="modal-close-btn"
+              onClick={closeReplacementModal}
+              aria-label="Close">
+              
                 &times;
               </button>
             </div>
 
-            {/* Body */}
+            {}
             <div className="modal-body">
-              {/* Section 1: Products to remove */}
+              {}
               <div className="modal-section">
                 <div className="modal-section-title">
                   <span>1. Products to Remove from Cart</span>
@@ -908,107 +908,107 @@ function Cart({
                 </p>
 
                 {cart.map((item) => {
-                  const pId = getItemId(item);
-                  const itemQty = Number(item.quantity || 1);
-                  const removeQty = Math.min(
-                    itemQty,
-                    Math.max(0, replacementModal.removeQuantities[pId] || 0)
-                  );
-                  const isChecked = removeQty > 0;
-                  const isOriginal =
-                    replacementModal.originalProduct &&
-                    getItemId(replacementModal.originalProduct) === pId;
-                  const itemTitle = item.name || item.productName || "Product";
-                  const itemPrice = Number(item.price || item.productPrice || 0);
-                  const subtotalRemoved = itemPrice * removeQty;
-                  const remainingQty = itemQty - removeQty;
+                const pId = getItemId(item);
+                const itemQty = Number(item.quantity || 1);
+                const removeQty = Math.min(
+                  itemQty,
+                  Math.max(0, replacementModal.removeQuantities[pId] || 0)
+                );
+                const isChecked = removeQty > 0;
+                const isOriginal =
+                replacementModal.originalProduct &&
+                getItemId(replacementModal.originalProduct) === pId;
+                const itemTitle = item.name || item.productName || "Product";
+                const itemPrice = Number(item.price || item.productPrice || 0);
+                const subtotalRemoved = itemPrice * removeQty;
+                const remainingQty = itemQty - removeQty;
 
-                  return (
-                    <div
-                      key={pId}
-                      className={`modal-item-card ${isChecked ? "selected-remove" : ""}`}
-                      onClick={() => toggleItemRemoval(pId, itemQty)}
-                    >
+                return (
+                  <div
+                    key={pId}
+                    className={`modal-item-card ${isChecked ? "selected-remove" : ""}`}
+                    onClick={() => toggleItemRemoval(pId, itemQty)}>
+                    
                       <input
-                        type="checkbox"
-                        className="modal-checkbox danger-check"
-                        checked={isChecked}
-                        onChange={() => {}}
-                        aria-label={`Remove ${itemTitle}`}
-                      />
+                      type="checkbox"
+                      className="modal-checkbox danger-check"
+                      checked={isChecked}
+                      onChange={() => {}}
+                      aria-label={`Remove ${itemTitle}`} />
+                    
                       <img
-                        src={getProductImage(item)}
-                        alt={itemTitle}
-                        className="modal-thumb"
-                      />
+                      src={getProductImage(item)}
+                      alt={itemTitle}
+                      className="modal-thumb" />
+                    
                       <div className="modal-item-info">
                         <p className="modal-item-name">{itemTitle}</p>
                         <div className="modal-item-meta">
                           <span>${itemPrice.toFixed(2)} each</span>
                           <span>&bull;</span>
                           <span>In Cart: {itemQty}</span>
-                          {isOriginal && (
-                            <span className="badge-tag-remove">Target of Suggestion</span>
-                          )}
-                          {removeQty > 0 && removeQty < itemQty && (
-                            <span
-                              className="badge-tag-remove"
-                              style={{ background: "#fef3c7", color: "#92400e" }}
-                            >
+                          {isOriginal &&
+                        <span className="badge-tag-remove">Target of Suggestion</span>
+                        }
+                          {removeQty > 0 && removeQty < itemQty &&
+                        <span
+                          className="badge-tag-remove"
+                          style={{ background: "#fef3c7", color: "#92400e" }}>
+                          
                               Remove {removeQty} &bull; Keep {remainingQty}
                             </span>
-                          )}
-                          {removeQty === itemQty && (
-                            <span className="badge-tag-remove">Remove all ({itemQty})</span>
-                          )}
-                          {removeQty === 0 && (
-                            <span className="badge-tag-keep">Keep all ({itemQty})</span>
-                          )}
+                        }
+                          {removeQty === itemQty &&
+                        <span className="badge-tag-remove">Remove all ({itemQty})</span>
+                        }
+                          {removeQty === 0 &&
+                        <span className="badge-tag-keep">Keep all ({itemQty})</span>
+                        }
                         </div>
                       </div>
                       <div className="modal-item-price-col" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-qty-controls">
                           <button
-                            type="button"
-                            className="modal-qty-btn"
-                            onClick={() => changeRemoveQuantity(pId, -1, itemQty)}
-                            disabled={removeQty <= 0}
-                            aria-label="Decrease quantity to remove"
-                          >
+                          type="button"
+                          className="modal-qty-btn"
+                          onClick={() => changeRemoveQuantity(pId, -1, itemQty)}
+                          disabled={removeQty <= 0}
+                          aria-label="Decrease quantity to remove">
+                          
                             -
                           </button>
                           <span
-                            className="modal-qty-value"
-                            title={`Removing ${removeQty} of ${itemQty}`}
-                          >
+                          className="modal-qty-value"
+                          title={`Removing ${removeQty} of ${itemQty}`}>
+                          
                             {removeQty}
                           </span>
                           <button
-                            type="button"
-                            className="modal-qty-btn"
-                            onClick={() => changeRemoveQuantity(pId, 1, itemQty)}
-                            disabled={removeQty >= itemQty}
-                            aria-label="Increase quantity to remove"
-                          >
+                          type="button"
+                          className="modal-qty-btn"
+                          onClick={() => changeRemoveQuantity(pId, 1, itemQty)}
+                          disabled={removeQty >= itemQty}
+                          aria-label="Increase quantity to remove">
+                          
                             +
                           </button>
                         </div>
                         <div className="modal-item-subtotal">
-                          {removeQty > 0 ? (
-                            <strong style={{ color: "#dc2626" }}>
+                          {removeQty > 0 ?
+                        <strong style={{ color: "#dc2626" }}>
                               -${subtotalRemoved.toFixed(2)}
-                            </strong>
-                          ) : (
-                            <span style={{ color: "#15803d", fontWeight: "600" }}>Keep All</span>
-                          )}
+                            </strong> :
+
+                        <span style={{ color: "#15803d", fontWeight: "600" }}>Keep All</span>
+                        }
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    </div>);
+
+              })}
               </div>
 
-              {/* Section 2: Products to add */}
+              {}
               <div className="modal-section">
                 <div className="modal-section-title">
                   <span>2. Product to Add to Cart</span>
@@ -1017,34 +1017,34 @@ function Cart({
                   Confirm the replacement product and quantity to add to your cart.
                 </p>
 
-                {replacementModal.addProduct && (
-                  <div
-                    className={`modal-item-card ${
-                      replacementModal.addProduct.checked ? "selected-add" : ""
-                    }`}
-                    onClick={toggleAddProduct}
-                  >
+                {replacementModal.addProduct &&
+              <div
+                className={`modal-item-card ${
+                replacementModal.addProduct.checked ? "selected-add" : ""}`
+                }
+                onClick={toggleAddProduct}>
+                
                     <input
-                      type="checkbox"
-                      className="modal-checkbox"
-                      checked={replacementModal.addProduct.checked}
-                      onChange={() => {}}
-                      aria-label={`Add ${replacementModal.addProduct.name}`}
-                    />
+                  type="checkbox"
+                  className="modal-checkbox"
+                  checked={replacementModal.addProduct.checked}
+                  onChange={() => {}}
+                  aria-label={`Add ${replacementModal.addProduct.name}`} />
+                
                     <img
-                      src={getProductImage(replacementModal.addProduct)}
-                      alt={replacementModal.addProduct.name}
-                      className="modal-thumb"
-                    />
+                  src={getProductImage(replacementModal.addProduct)}
+                  alt={replacementModal.addProduct.name}
+                  className="modal-thumb" />
+                
                     <div className="modal-item-info">
                       <p className="modal-item-name">{replacementModal.addProduct.name}</p>
                       <div className="modal-item-meta">
                         <span>${replacementModal.addProduct.price.toFixed(2)} each</span>
-                        {replacementModal.addProduct.savings > 0 && (
-                          <span className="badge-tag-add">
+                        {replacementModal.addProduct.savings > 0 &&
+                    <span className="badge-tag-add">
                             Save ${replacementModal.addProduct.savings.toFixed(2)} each
                           </span>
-                        )}
+                    }
                         <span>&bull;</span>
                         <span style={{ color: "#15803d" }}>In Stock</span>
                       </div>
@@ -1052,27 +1052,27 @@ function Cart({
                     <div className="modal-item-price-col" onClick={(e) => e.stopPropagation()}>
                       <div className="modal-qty-controls">
                         <button
-                          type="button"
-                          className="modal-qty-btn"
-                          onClick={() => changeAddQuantity(-1)}
-                          disabled={replacementModal.addProduct.quantity <= 1}
-                          aria-label="Decrease quantity"
-                        >
+                      type="button"
+                      className="modal-qty-btn"
+                      onClick={() => changeAddQuantity(-1)}
+                      disabled={replacementModal.addProduct.quantity <= 1}
+                      aria-label="Decrease quantity">
+                      
                           -
                         </button>
                         <span className="modal-qty-value">
                           {replacementModal.addProduct.quantity}
                         </span>
                         <button
-                          type="button"
-                          className="modal-qty-btn"
-                          onClick={() => changeAddQuantity(1)}
-                          disabled={
-                            replacementModal.addProduct.quantity >=
-                            (replacementModal.addProduct.maxStock || 99)
-                          }
-                          aria-label="Increase quantity"
-                        >
+                      type="button"
+                      className="modal-qty-btn"
+                      onClick={() => changeAddQuantity(1)}
+                      disabled={
+                      replacementModal.addProduct.quantity >= (
+                      replacementModal.addProduct.maxStock || 99)
+                      }
+                      aria-label="Increase quantity">
+                      
                           +
                         </button>
                       </div>
@@ -1080,36 +1080,36 @@ function Cart({
                         <strong>
                           $
                           {(
-                            replacementModal.addProduct.price *
-                            replacementModal.addProduct.quantity
-                          ).toFixed(2)}
+                      replacementModal.addProduct.price *
+                      replacementModal.addProduct.quantity).
+                      toFixed(2)}
                         </strong>
                       </div>
                     </div>
                   </div>
-                )}
+              }
               </div>
 
-              {/* Section 3: Summary / Preview */}
+              {}
               {(() => {
-                const removedValue = cart.reduce((sum, item) => {
-                  const pId = getItemId(item);
-                  const q = replacementModal.removeQuantities[pId] || 0;
-                  return sum + Number(item.price || item.productPrice || 0) * q;
-                }, 0);
-                const totalUnitsRemoved = Object.values(replacementModal.removeQuantities).reduce(
-                  (sum, q) => sum + (q || 0),
-                  0
-                );
-                const addedValue =
-                  replacementModal.addProduct && replacementModal.addProduct.checked
-                    ? replacementModal.addProduct.price * replacementModal.addProduct.quantity
-                    : 0;
-                const projectedTotal = Math.max(0, frontendTotal - removedValue + addedValue);
-                const netSavings = frontendTotal - projectedTotal;
+              const removedValue = cart.reduce((sum, item) => {
+                const pId = getItemId(item);
+                const q = replacementModal.removeQuantities[pId] || 0;
+                return sum + Number(item.price || item.productPrice || 0) * q;
+              }, 0);
+              const totalUnitsRemoved = Object.values(replacementModal.removeQuantities).reduce(
+                (sum, q) => sum + (q || 0),
+                0
+              );
+              const addedValue =
+              replacementModal.addProduct && replacementModal.addProduct.checked ?
+              replacementModal.addProduct.price * replacementModal.addProduct.quantity :
+              0;
+              const projectedTotal = Math.max(0, frontendTotal - removedValue + addedValue);
+              const netSavings = frontendTotal - projectedTotal;
 
-                return (
-                  <div className="modal-summary-box">
+              return (
+                <div className="modal-summary-box">
                     <div className="modal-summary-row">
                       <span>Current Cart Total:</span>
                       <span>${frontendTotal.toFixed(2)}</span>
@@ -1121,11 +1121,11 @@ function Cart({
                     <div className="modal-summary-row" style={{ color: "#15803d" }}>
                       <span>
                         + Items Added (
-                        {replacementModal.addProduct?.checked
-                          ? `${replacementModal.addProduct.quantity} unit${
-                              replacementModal.addProduct.quantity === 1 ? "" : "s"
-                            }`
-                          : "0 units"}
+                        {replacementModal.addProduct?.checked ?
+                      `${replacementModal.addProduct.quantity} unit${
+                      replacementModal.addProduct.quantity === 1 ? "" : "s"}` :
+
+                      "0 units"}
                         ):
                       </span>
                       <span>+${addedValue.toFixed(2)}</span>
@@ -1134,53 +1134,53 @@ function Cart({
                       <span>Projected New Cart Total:</span>
                       <span>${projectedTotal.toFixed(2)}</span>
                     </div>
-                    {netSavings !== 0 && (
-                      <div
-                        style={{
-                          marginTop: "8px",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: "13px",
-                        }}
-                      >
+                    {netSavings !== 0 &&
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: "13px"
+                    }}>
+                    
                         <span style={{ fontWeight: "600" }}>Estimated Difference:</span>
                         <span className="modal-savings-pill">
-                          {netSavings > 0
-                            ? `You Save $${netSavings.toFixed(2)}`
-                            : `+$${Math.abs(netSavings).toFixed(2)}`}
+                          {netSavings > 0 ?
+                      `You Save $${netSavings.toFixed(2)}` :
+                      `+$${Math.abs(netSavings).toFixed(2)}`}
                         </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                  }
+                  </div>);
+
+            })()}
             </div>
 
-            {/* Footer */}
+            {}
             <div className="modal-footer">
               <button
-                type="button"
-                className="btn-secondary"
-                onClick={closeReplacementModal}
-                disabled={replacementModal.saving}
-              >
+              type="button"
+              className="btn-secondary"
+              onClick={closeReplacementModal}
+              disabled={replacementModal.saving}>
+              
                 Cancel
               </button>
               <button
-                type="button"
-                className="btn-primary"
-                onClick={handleSaveReplacement}
-                disabled={replacementModal.saving}
-              >
+              type="button"
+              className="btn-primary"
+              onClick={handleSaveReplacement}
+              disabled={replacementModal.saving}>
+              
                 {replacementModal.saving ? "Saving Changes..." : "Save Changes"}
               </button>
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }
 
 export default Cart;

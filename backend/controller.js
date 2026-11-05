@@ -17,10 +17,10 @@ const JWT_SECRET = process.env.JWT_SECRET || "webtech_mini_proj_jwt_secret_key_2
 app.use(cors());
 app.use(express.json());
 
-mongoose
-  .connect("mongodb+srv://pranav03102007_db_user:PranavPrakasH10@cluster0.ki5fijl.mongodb.net/lab8")
-  .then(() => console.log("Connected to MongoDB!"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+mongoose.
+connect("mongodb+srv://pranav03102007_db_user:PranavPrakasH10@cluster0.ki5fijl.mongodb.net/lab8").
+then(() => console.log("Connected to MongoDB!")).
+catch((err) => console.error("MongoDB connection error:", err));
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
@@ -28,19 +28,19 @@ app.listen(PORT, () => {
 
 const verifyAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.startsWith("Bearer ")
-    ? authHeader.split(" ")[1]
-    : authHeader || req.headers["x-user-email"];
+  const token = authHeader && authHeader.startsWith("Bearer ") ?
+  authHeader.split(" ")[1] :
+  authHeader || req.headers["x-user-email"];
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized. Please log in first." });
   }
 
   try {
-    // 1. Verify cryptographic JWT signature and expiration
+
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = (decoded.userId ? await User.findById(decoded.userId) : null) ||
-                 (decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
+    const user = (decoded.userId ? await User.findById(decoded.userId) : null) || (
+    decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
 
     if (!user) {
       return res.status(401).json({ message: "Invalid user authentication token." });
@@ -53,7 +53,7 @@ const verifyAuth = async (req, res, next) => {
       return res.status(401).json({ message: "Authentication token expired. Please log in again." });
     }
 
-    // 2. Fallback for backwards compatibility with any existing session tokens
+
     try {
       let fallbackEmail = token;
       const decodedBuf = Buffer.from(token, "base64").toString("utf-8");
@@ -63,7 +63,7 @@ const verifyAuth = async (req, res, next) => {
         req.user = legacyUser;
         return next();
       }
-    } catch { }
+    } catch {}
 
     return res.status(401).json({ message: "Invalid authentication token." });
   }
@@ -86,15 +86,15 @@ app.post(["/api/users", "/users"], async (req, res) => {
       username: username.trim(),
       emailId: cleanEmail,
       age: Number(age),
-      password: String(password),
+      password: String(password)
     });
 
-    // Generate real JWT token upon registration
+
     const token = jwt.sign(
       {
         userId: newUser._id,
         emailId: newUser.emailId,
-        username: newUser.username,
+        username: newUser.username
       },
       JWT_SECRET,
       { expiresIn: "24h" }
@@ -103,7 +103,7 @@ app.post(["/api/users", "/users"], async (req, res) => {
     res.status(201).json({
       message: `Successfully registered! Welcome, ${newUser.username}.`,
       token,
-      user: { username: newUser.username, emailId: newUser.emailId, age: newUser.age },
+      user: { username: newUser.username, emailId: newUser.emailId, age: newUser.age }
     });
   } catch (err) {
     res.status(500).json({ message: "Registration failed", error: err.message });
@@ -126,12 +126,12 @@ app.post(["/api/login", "/login"], async (req, res) => {
       return res.status(401).json({ message: "Invalid Password." });
     }
 
-    // Generate real, cryptographically signed JWT token with 24-hour expiration
+
     const token = jwt.sign(
       {
         userId: user._id,
         emailId: user.emailId,
-        username: user.username,
+        username: user.username
       },
       JWT_SECRET,
       { expiresIn: "24h" }
@@ -140,7 +140,7 @@ app.post(["/api/login", "/login"], async (req, res) => {
     res.json({
       message: "Login successful!",
       token,
-      user: { username: user.username, emailId: user.emailId, age: user.age },
+      user: { username: user.username, emailId: user.emailId, age: user.age }
     });
   } catch (err) {
     res.status(500).json({ message: "Login failed", error: err.message });
@@ -149,7 +149,7 @@ app.post(["/api/login", "/login"], async (req, res) => {
 
 app.get(["/api/products", "/products"], verifyAuth, async (req, res) => {
   try {
-    // Expire any stale reservations first
+
     await Reservation.updateMany(
       { status: "active", expiresAt: { $lte: new Date() } },
       { $set: { status: "expired" } }
@@ -157,11 +157,11 @@ app.get(["/api/products", "/products"], verifyAuth, async (req, res) => {
 
     const products = await Product.find();
 
-    // Aggregate active reserved quantities per product
+
     const activeReservations = await Reservation.aggregate([
-      { $match: { status: "active", expiresAt: { $gt: new Date() } } },
-      { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } },
-    ]);
+    { $match: { status: "active", expiresAt: { $gt: new Date() } } },
+    { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
+    );
     const reservedMap = {};
     activeReservations.forEach((r) => {
       reservedMap[r._id] = r.totalReserved;
@@ -200,7 +200,7 @@ app.put(["/api/users", "/users"], async (req, res) => {
 
     res.json({
       message: "Complete profile details updated successfully.",
-      user: { username: user.username, emailId: user.emailId, age: user.age },
+      user: { username: user.username, emailId: user.emailId, age: user.age }
     });
   } catch (err) {
     res.status(500).json({ message: "Update failed", error: err.message });
@@ -223,7 +223,7 @@ app.patch(["/api/users", "/users"], async (req, res) => {
 
     res.json({
       message: "Selected profile fields updated successfully.",
-      user: { username: user.username, emailId: user.emailId, age: user.age },
+      user: { username: user.username, emailId: user.emailId, age: user.age }
     });
   } catch (err) {
     res.status(500).json({ message: "Update failed", error: err.message });
@@ -250,16 +250,16 @@ app.get(["/api/products/:productId", "/products/:productId"], async (req, res) =
     const product = await Product.findOne({ productId: req.params.productId });
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // Expire any stale reservations first
+
     await Reservation.updateMany(
       { productId: product.productId, status: "active", expiresAt: { $lte: new Date() } },
       { $set: { status: "expired" } }
     );
 
     const activeReservations = await Reservation.aggregate([
-      { $match: { productId: product.productId, status: "active", expiresAt: { $gt: new Date() } } },
-      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
-    ]);
+    { $match: { productId: product.productId, status: "active", expiresAt: { $gt: new Date() } } },
+    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+    );
     const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
     const obj = product.toObject();
     obj.availableStock = Math.max(0, product.quantity - totalReserved);
@@ -293,41 +293,41 @@ app.put(["/api/products/:productId", "/products/:productId"], async (req, res) =
   }
 });
 
-// Place an order: decrement product quantities for each cart item
+
 app.post(["/api/orders", "/orders"], verifyAuth, async (req, res) => {
   try {
-    const { items } = req.body; // items: [{ productId, quantity }]
+    const { items } = req.body;
 
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Order must contain at least one item." });
     }
 
-    // Validate all items first before making any changes
+
     const updates = [];
     for (const item of items) {
       if (!item.productId || !item.quantity || item.quantity < 1) {
         return res.status(400).json({
-          message: `Invalid item: each item must have a productId and a quantity >= 1.`,
+          message: `Invalid item: each item must have a productId and a quantity >= 1.`
         });
       }
 
       const product = await Product.findOne({ productId: item.productId });
       if (!product) {
         return res.status(404).json({
-          message: `Product "${item.productId}" not found.`,
+          message: `Product "${item.productId}" not found.`
         });
       }
 
       if (product.quantity < item.quantity) {
         return res.status(400).json({
-          message: `Insufficient stock for "${product.productName}" (ID: ${item.productId}). Available: ${product.quantity}, Requested: ${item.quantity}.`,
+          message: `Insufficient stock for "${product.productName}" (ID: ${item.productId}). Available: ${product.quantity}, Requested: ${item.quantity}.`
         });
       }
 
       updates.push({ product, orderedQty: item.quantity });
     }
 
-    // All validations passed — apply the quantity decrements
+
     for (const { product, orderedQty } of updates) {
       product.quantity -= orderedQty;
       await product.save();
@@ -338,8 +338,8 @@ app.post(["/api/orders", "/orders"], verifyAuth, async (req, res) => {
       updatedProducts: updates.map(({ product }) => ({
         productId: product.productId,
         productName: product.productName,
-        remainingQuantity: product.quantity,
-      })),
+        remainingQuantity: product.quantity
+      }))
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to place order", error: err.message });
@@ -356,7 +356,7 @@ app.delete(["/api/products/:productId", "/products/:productId"], async (req, res
   }
 });
 
-// --- Reservation Expiry Cleanup ---
+
 const cleanupExpiredReservations = async () => {
   try {
     await Reservation.updateMany(
@@ -368,11 +368,11 @@ const cleanupExpiredReservations = async () => {
   }
 };
 setInterval(cleanupExpiredReservations, 60 * 1000);
-cleanupExpiredReservations(); // run once on startup
+cleanupExpiredReservations();
 
-// --- Reservation API Endpoints ---
 
-// POST /api/reservations — Reserve a product with 10-minute expiry and concurrency protection
+
+
 app.post("/api/reservations", verifyAuth, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
@@ -387,90 +387,90 @@ app.post("/api/reservations", verifyAuth, async (req, res) => {
       return res.status(404).json({ message: "Product not found." });
     }
 
-    // Clean up any expired reservations first
+
     await Reservation.updateMany(
       { productId, status: "active", expiresAt: { $lte: new Date() } },
       { $set: { status: "expired" } }
     );
 
-    // Calculate currently available stock: Total Stock - Sum of Active Reservations
+
     const activeReservations = await Reservation.aggregate([
-      { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
-      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
-    ]);
+    { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
+    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+    );
     const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
     const availableStock = Math.max(0, product.quantity - totalReserved);
 
     if (reqQty > availableStock) {
       return res.status(400).json({
         message: `Insufficient stock. Only ${availableStock} unit(s) available.`,
-        availableStock,
+        availableStock
       });
     }
 
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Create reservation
+
     const reservation = await Reservation.create({
       userId: req.user._id,
       productId,
       quantity: reqQty,
       status: "active",
-      expiresAt,
+      expiresAt
     });
 
-    // Concurrency verification:
-    // Determine cumulative active reservations ordered by (createdAt ASC, _id ASC) up to and including this reservation
+
+
     const activePriorReservations = await Reservation.find({
       productId,
       status: "active",
       expiresAt: { $gt: new Date() },
       $or: [
-        { createdAt: { $lt: reservation.createdAt } },
-        { createdAt: reservation.createdAt, _id: { $lte: reservation._id } },
-      ],
+      { createdAt: { $lt: reservation.createdAt } },
+      { createdAt: reservation.createdAt, _id: { $lte: reservation._id } }]
+
     });
     const cumulativeReserved = activePriorReservations.reduce((sum, r) => sum + r.quantity, 0);
 
     if (cumulativeReserved > product.quantity) {
-      // Race condition detected: another concurrent request reserved the last stock first. Roll back this reservation.
+
       await Reservation.deleteOne({ _id: reservation._id });
       return res.status(409).json({
         message: "Reservation conflict. The requested stock was reserved by another user.",
-        availableStock: 0,
+        availableStock: 0
       });
     }
 
     res.status(201).json({
       message: "Product reserved successfully!",
-      reservation,
+      reservation
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to create reservation", error: err.message });
   }
 });
 
-// GET /api/reservations/my — Return logged-in user's reservations
+
 app.get("/api/reservations/my", verifyAuth, async (req, res) => {
   try {
-    // Automatically mark user's expired reservations
+
     await Reservation.updateMany(
       { userId: req.user._id, status: "active", expiresAt: { $lte: new Date() } },
       { $set: { status: "expired" } }
     );
 
-    const reservations = await Reservation.find({ userId: req.user._id })
-      .sort({ createdAt: -1 });
+    const reservations = await Reservation.find({ userId: req.user._id }).
+    sort({ createdAt: -1 });
 
-    // Enrich reservations with product details
+
     const productIds = [...new Set(reservations.map((r) => r.productId))];
     const products = await Product.find({ productId: { $in: productIds } });
     const productMap = {};
-    products.forEach((p) => { productMap[p.productId] = p; });
+    products.forEach((p) => {productMap[p.productId] = p;});
 
     const enriched = reservations.map((r) => ({
       ...r.toObject(),
-      product: productMap[r.productId] || null,
+      product: productMap[r.productId] || null
     }));
 
     res.json(enriched);
@@ -479,10 +479,10 @@ app.get("/api/reservations/my", verifyAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/reservations/:id — Cancel reservation and release stock
+
 app.delete("/api/reservations/:id", verifyAuth, async (req, res) => {
   try {
-    // Atomically cancel reservation owned by the user
+
     const updated = await Reservation.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id, status: "active" },
       { $set: { status: "cancelled" } },
@@ -506,16 +506,16 @@ app.delete("/api/reservations/:id", verifyAuth, async (req, res) => {
   }
 });
 
-// POST /api/reservations/:id/complete — Complete reservation during checkout, reduce stock exactly once
+
 app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
   try {
-    // Atomically transition reservation from active -> completed to prevent double-completion
+
     const updatedReservation = await Reservation.findOneAndUpdate(
       {
         _id: req.params.id,
         userId: req.user._id,
         status: "active",
-        expiresAt: { $gt: new Date() },
+        expiresAt: { $gt: new Date() }
       },
       { $set: { status: "completed" } },
       { new: true }
@@ -540,7 +540,7 @@ app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
       return res.status(400).json({ message: "Unable to complete reservation." });
     }
 
-    // Atomically decrement product stock exactly once
+
     const updatedProduct = await Product.findOneAndUpdate(
       { productId: updatedReservation.productId, quantity: { $gte: updatedReservation.quantity } },
       { $inc: { quantity: -updatedReservation.quantity } },
@@ -548,7 +548,7 @@ app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
     );
 
     if (!updatedProduct) {
-      // Revert reservation status if stock is unexpectedly insufficient
+
       await Reservation.updateOne({ _id: updatedReservation._id }, { $set: { status: "active" } });
       return res.status(400).json({ message: "Insufficient product stock to complete reservation." });
     }
@@ -556,31 +556,31 @@ app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
     res.json({
       message: "Reservation completed! Purchase successful.",
       reservation: updatedReservation,
-      updatedProduct,
+      updatedProduct
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to complete reservation", error: err.message });
   }
 });
 
-// ============================================================
-// 4. SHOPPING BUDGET & CHEAPER WORTHY ALTERNATIVES
-// ============================================================
 
-/**
- * Conventional rule-based algorithm to find top cheaper worthy alternatives
- * for a product in the cart.
- *
- * Rules:
- * 1. Category Match: Must belong to the exact same category.
- * 2. Lower Price: Price must be strictly lower than original product price.
- * 3. Identity Check: Exclude the original product itself (productId !== orig.productId).
- * 4. In Stock: Available stock must be > 0.
- * 5. Rule-based Similarity Score:
- *    - Keyword overlap between productName & description of original vs candidate.
- *    - Value & savings factor.
- * 6. Top 3 Candidates: Ranked descending by similarity score and savings.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
   const origPrice = Number(originalProduct.productPrice !== undefined ? originalProduct.productPrice : originalProduct.price || 0);
   const origCategory = String(originalProduct.category || "").toLowerCase().trim();
@@ -589,10 +589,10 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
 
   const stopWords = new Set(["the", "a", "an", "and", "or", "with", "for", "in", "of", "to", "is", "by", "on"]);
   const origTokens = new Set(
-    `${origName} ${origDesc}`
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w))
+    `${origName} ${origDesc}`.
+    replace(/[^a-z0-9\s]/g, " ").
+    split(/\s+/).
+    filter((w) => w.length > 2 && !stopWords.has(w))
   );
 
   const scoredAlternatives = [];
@@ -607,17 +607,17 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
     const candPrice = Number(candidate.productPrice !== undefined ? candidate.productPrice : candidate.price || 0);
     if (candPrice >= origPrice || candPrice <= 0) continue;
 
-    // Check available stock
+
     const candStock = Number(candidate.availableStock !== undefined ? candidate.availableStock : candidate.quantity || 0);
     if (candStock <= 0) continue;
 
-    // Keyword overlap
+
     const candName = String(candidate.productName || candidate.name || "").toLowerCase();
     const candDesc = String(candidate.description || "").toLowerCase();
-    const candTokens = `${candName} ${candDesc}`
-      .replace(/[^a-z0-9\s]/g, " ")
-      .split(/\s+/)
-      .filter((w) => w.length > 2 && !stopWords.has(w));
+    const candTokens = `${candName} ${candDesc}`.
+    replace(/[^a-z0-9\s]/g, " ").
+    split(/\s+/).
+    filter((w) => w.length > 2 && !stopWords.has(w));
 
     let keywordOverlap = 0;
     candTokens.forEach((token) => {
@@ -627,8 +627,8 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
     const unitSavings = Number((origPrice - candPrice).toFixed(2));
     const totalSavings = Number((unitSavings * quantity).toFixed(2));
 
-    // Rule-based score: Category match base (50) + keyword overlap (10 pts each) + price savings weight
-    const similarityScore = 50 + keywordOverlap * 10 + (unitSavings / origPrice) * 20;
+
+    const similarityScore = 50 + keywordOverlap * 10 + unitSavings / origPrice * 20;
 
     scoredAlternatives.push({
       productId: candidate.productId,
@@ -642,18 +642,18 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
       availableStock: candStock,
       image: candidate.image || "",
       description: candidate.description || "",
-      similarityScore: Number(similarityScore.toFixed(2)),
+      similarityScore: Number(similarityScore.toFixed(2))
     });
   }
 
-  // Rank by similarity score descending, then by savings descending
+
   scoredAlternatives.sort((a, b) => b.similarityScore - a.similarityScore || b.savings - a.savings);
 
-  // Return top 3 alternatives
+
   return scoredAlternatives.slice(0, 3);
 }
 
-// POST /api/budget — Set or update authenticated user's shopping budget
+
 app.post("/api/budget", verifyAuth, async (req, res) => {
   try {
     const { budget } = req.body;
@@ -673,14 +673,14 @@ app.post("/api/budget", verifyAuth, async (req, res) => {
 
     res.json({
       message: "Shopping budget saved successfully.",
-      budget: user.budget,
+      budget: user.budget
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to update budget.", error: err.message });
   }
 });
 
-// GET /api/budget — Retrieve authenticated user's budget
+
 app.get("/api/budget", verifyAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -689,14 +689,14 @@ app.get("/api/budget", verifyAuth, async (req, res) => {
     }
 
     res.json({
-      budget: Number(user.budget || 0),
+      budget: Number(user.budget || 0)
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to retrieve budget.", error: err.message });
   }
 });
 
-// POST /api/cart — Save or synchronize user's cart in database
+
 app.post("/api/cart", verifyAuth, async (req, res) => {
   try {
     const { cart } = req.body;
@@ -722,7 +722,7 @@ app.post("/api/cart", verifyAuth, async (req, res) => {
     user.cart = cleanCart;
     await user.save();
 
-    // Recalculate using actual MongoDB prices
+
     let cartTotal = 0;
     const enrichedCart = [];
 
@@ -740,7 +740,7 @@ app.post("/api/cart", verifyAuth, async (req, res) => {
         quantity: c.quantity,
         subtotal: Number(subtotal.toFixed(2)),
         image: p.image,
-        category: p.category,
+        category: p.category
       });
     }
 
@@ -755,14 +755,14 @@ app.post("/api/cart", verifyAuth, async (req, res) => {
       budget,
       remainingBudget: Math.max(0, Number((budget - cartTotal).toFixed(2))),
       exceededAmount: Math.max(0, Number((cartTotal - budget).toFixed(2))),
-      isExceeded,
+      isExceeded
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to update cart.", error: err.message });
   }
 });
 
-// GET /api/cart — Retrieve authenticated user's cart with MongoDB prices
+
 app.get("/api/cart", verifyAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -785,7 +785,7 @@ app.get("/api/cart", verifyAuth, async (req, res) => {
         quantity: c.quantity,
         subtotal: Number(subtotal.toFixed(2)),
         image: p.image,
-        category: p.category,
+        category: p.category
       });
     }
 
@@ -799,14 +799,14 @@ app.get("/api/cart", verifyAuth, async (req, res) => {
       budget,
       remainingBudget: Math.max(0, Number((budget - cartTotal).toFixed(2))),
       exceededAmount: Math.max(0, Number((cartTotal - budget).toFixed(2))),
-      isExceeded,
+      isExceeded
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to retrieve cart.", error: err.message });
   }
 });
 
-// Common handler for GET and POST /api/budget/alternatives
+
 const handleAlternativesRequest = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -814,7 +814,7 @@ const handleAlternativesRequest = async (req, res) => {
 
     const budget = Number(user.budget || 0);
 
-    // Accept cart items from query string, JSON body, or stored user cart
+
     let cartItems = [];
     if (req.body && Array.isArray(req.body.cart)) {
       cartItems = req.body.cart;
@@ -828,7 +828,7 @@ const handleAlternativesRequest = async (req, res) => {
       cartItems = user.cart;
     }
 
-    // Calculate actual cart total strictly using MongoDB prices
+
     let actualCartTotal = 0;
     const validatedCart = [];
 
@@ -846,7 +846,7 @@ const handleAlternativesRequest = async (req, res) => {
       validatedCart.push({
         product,
         quantity: qty,
-        realPrice,
+        realPrice
       });
     }
 
@@ -855,7 +855,7 @@ const handleAlternativesRequest = async (req, res) => {
     const exceededAmount = isExceeded ? Number((actualCartTotal - budget).toFixed(2)) : 0;
     const remainingBudget = Math.max(0, Number((budget - actualCartTotal).toFixed(2)));
 
-    // If within budget, return empty alternatives
+
     if (!isExceeded) {
       return res.json({
         budget,
@@ -863,16 +863,16 @@ const handleAlternativesRequest = async (req, res) => {
         remainingBudget,
         exceededAmount: 0,
         isExceeded: false,
-        alternatives: [],
+        alternatives: []
       });
     }
 
-    // Fetch all products and active reservations to compute actual available stock
+
     const allProducts = await Product.find();
     const activeRes = await Reservation.aggregate([
-      { $match: { status: "active", expiresAt: { $gt: new Date() } } },
-      { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } },
-    ]);
+    { $match: { status: "active", expiresAt: { $gt: new Date() } } },
+    { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
+    );
     const reservedMap = {};
     activeRes.forEach((r) => {
       reservedMap[r._id] = r.totalReserved;
@@ -899,9 +899,9 @@ const handleAlternativesRequest = async (req, res) => {
             productPrice: realPrice,
             quantity,
             category: product.category,
-            image: product.image,
+            image: product.image
           },
-          suggestions,
+          suggestions
         });
       }
     }
@@ -912,63 +912,63 @@ const handleAlternativesRequest = async (req, res) => {
       remainingBudget: 0,
       exceededAmount,
       isExceeded: true,
-      alternatives,
+      alternatives
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to evaluate alternatives.", error: err.message });
   }
 };
 
-// GET & POST /api/budget/alternatives — Returns cheaper worthy alternatives when cart exceeds budget
+
 app.get("/api/budget/alternatives", verifyAuth, handleAlternativesRequest);
 app.post("/api/budget/alternatives", verifyAuth, handleAlternativesRequest);
 
-// POST /api/cart/replace — Replace an item in the cart with a cheaper alternative
+
 app.post("/api/cart/replace", verifyAuth, async (req, res) => {
   try {
     const { originalProductId, replacementProductId, cart: clientCart } = req.body;
 
     if (!originalProductId || !replacementProductId) {
       return res.status(400).json({
-        message: "Both originalProductId and replacementProductId are required.",
+        message: "Both originalProductId and replacementProductId are required."
       });
     }
 
     if (originalProductId === replacementProductId) {
       return res.status(400).json({
-        message: "Replacement product cannot be the same as original product.",
+        message: "Replacement product cannot be the same as original product."
       });
     }
 
-    // 1. Verify replacement product exists in MongoDB and is in stock
+
     const replacementProduct = await Product.findOne({ productId: replacementProductId });
     if (!replacementProduct) {
       return res.status(404).json({ message: "Replacement product not found in database." });
     }
 
-    // Calculate available stock
+
     const activeRes = await Reservation.aggregate([
-      { $match: { productId: replacementProductId, status: "active", expiresAt: { $gt: new Date() } } },
-      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } },
-    ]);
+    { $match: { productId: replacementProductId, status: "active", expiresAt: { $gt: new Date() } } },
+    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+    );
     const totalReserved = activeRes.length > 0 ? activeRes[0].totalReserved : 0;
     const availableStock = Math.max(0, replacementProduct.quantity - totalReserved);
 
     if (availableStock <= 0) {
       return res.status(400).json({
-        message: `Replacement product '${replacementProduct.productName || replacementProduct.productId}' is out of stock.`,
+        message: `Replacement product '${replacementProduct.productName || replacementProduct.productId}' is out of stock.`
       });
     }
 
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found." });
 
-    // Use clientCart if passed from client (authoritative current session state), otherwise fallback to user.cart
-    let workingCart = Array.isArray(clientCart) && clientCart.length > 0
-      ? clientCart.map((i) => ({ productId: i.productId || i.id || i._id, quantity: Number(i.quantity || 1) }))
-      : (user.cart && user.cart.length > 0
-          ? user.cart.map((i) => ({ productId: i.productId, quantity: Number(i.quantity || 1) }))
-          : []);
+
+    let workingCart = Array.isArray(clientCart) && clientCart.length > 0 ?
+    clientCart.map((i) => ({ productId: i.productId || i.id || i._id, quantity: Number(i.quantity || 1) })) :
+    user.cart && user.cart.length > 0 ?
+    user.cart.map((i) => ({ productId: i.productId, quantity: Number(i.quantity || 1) })) :
+    [];
 
     const targetIndex = workingCart.findIndex(
       (item) => String(item.productId) === String(originalProductId)
@@ -976,20 +976,20 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
 
     if (targetIndex === -1) {
       return res.status(404).json({
-        message: `Product '${originalProductId}' is not present in the shopping cart.`,
+        message: `Product '${originalProductId}' is not present in the shopping cart.`
       });
     }
 
-    // Preserve original quantity
+
     const preservedQuantity = Number(workingCart[targetIndex].quantity || 1);
 
     if (availableStock < preservedQuantity) {
       return res.status(400).json({
-        message: `Insufficient stock for replacement. Available: ${availableStock}, required: ${preservedQuantity}.`,
+        message: `Insufficient stock for replacement. Available: ${availableStock}, required: ${preservedQuantity}.`
       });
     }
 
-    // Check if replacement item already exists in cart; if so, combine quantity
+
     const existingReplacementIndex = workingCart.findIndex(
       (item, idx) => idx !== targetIndex && String(item.productId) === String(replacementProductId)
     );
@@ -1001,11 +1001,11 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
       workingCart[targetIndex].productId = replacementProductId;
     }
 
-    // Save to user.cart
+
     user.cart = workingCart;
     await user.save();
 
-    // Recalculate cart total using ACTUAL database prices
+
     let newCartTotal = 0;
     const updatedEnrichedCart = [];
 
@@ -1024,7 +1024,7 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
         quantity: item.quantity,
         subtotal: Number(subtotal.toFixed(2)),
         image: p.image,
-        category: p.category,
+        category: p.category
       });
     }
 
@@ -1045,19 +1045,19 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
       replacementProduct: {
         productId: replacementProduct.productId,
         name: replacementProduct.productName || replacementProduct.name,
-        price: Number(replacementProduct.productPrice !== undefined ? replacementProduct.productPrice : replacementProduct.price || 0),
-      },
+        price: Number(replacementProduct.productPrice !== undefined ? replacementProduct.productPrice : replacementProduct.price || 0)
+      }
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to replace product in cart.", error: err.message });
   }
 });
 
-// ============================================================
-// 5. COLLABORATIVE SHOPPING CART (SHARED CARTS)
-// ============================================================
 
-// Helper to enrich shared cart items with real MongoDB product data and compute cart total
+
+
+
+
 const enrichSharedCart = async (cartDoc) => {
   await cartDoc.populate("members", "username emailId");
   await cartDoc.populate("createdBy", "username emailId");
@@ -1090,7 +1090,7 @@ const enrichSharedCart = async (cartDoc) => {
       category: p ? p.category : "General",
       availableStock: p ? p.quantity : 0,
       addedBy: item.addedBy,
-      addedByUsername: item.addedByUsername || "Member",
+      addedByUsername: item.addedByUsername || "Member"
     });
   }
 
@@ -1104,11 +1104,11 @@ const enrichSharedCart = async (cartDoc) => {
     items: enrichedItems,
     cartTotal: Number(cartTotal.toFixed(2)),
     createdAt: cartDoc.createdAt,
-    updatedAt: cartDoc.updatedAt,
+    updatedAt: cartDoc.updatedAt
   };
 };
 
-// Generate unique room code
+
 const generateUniqueRoomCode = async () => {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
@@ -1125,7 +1125,7 @@ const generateUniqueRoomCode = async () => {
   return code;
 };
 
-// POST /api/shared-carts/create — Create a new shared shopping room
+
 app.post("/api/shared-carts/create", verifyAuth, async (req, res) => {
   try {
     const roomCode = await generateUniqueRoomCode();
@@ -1136,21 +1136,21 @@ app.post("/api/shared-carts/create", verifyAuth, async (req, res) => {
       members: [req.user._id],
       items: [],
       status: "active",
-      version: 1,
+      version: 1
     });
 
     const enriched = await enrichSharedCart(sharedCart);
 
     res.status(201).json({
       message: `Shared shopping room '${roomCode}' created successfully!`,
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to create shared cart room.", error: err.message });
   }
 });
 
-// POST /api/shared-carts/join — Join an existing shared shopping room
+
 app.post("/api/shared-carts/join", verifyAuth, async (req, res) => {
   try {
     const { roomCode } = req.body;
@@ -1169,7 +1169,7 @@ app.post("/api/shared-carts/join", verifyAuth, async (req, res) => {
       return res.status(400).json({ message: `Room '${cleanCode}' is closed and no longer accepting members.` });
     }
 
-    // Prevent duplicate membership
+
     const alreadyMember = cart.members.some((m) => m.toString() === req.user._id.toString());
     if (!alreadyMember) {
       cart.members.push(req.user._id);
@@ -1181,20 +1181,20 @@ app.post("/api/shared-carts/join", verifyAuth, async (req, res) => {
 
     res.json({
       message: alreadyMember ? "Already a member of this room." : "Joined shared shopping room successfully!",
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to join shared cart room.", error: err.message });
   }
 });
 
-// GET /api/shared-carts/my/rooms — List active rooms the authenticated user belongs to
+
 app.get("/api/shared-carts/my/rooms", verifyAuth, async (req, res) => {
   try {
-    const rooms = await SharedCart.find({ members: req.user._id, status: "active" })
-      .populate("createdBy", "username emailId")
-      .populate("members", "username emailId")
-      .sort({ updatedAt: -1 });
+    const rooms = await SharedCart.find({ members: req.user._id, status: "active" }).
+    populate("createdBy", "username emailId").
+    populate("members", "username emailId").
+    sort({ updatedAt: -1 });
 
     res.json(rooms);
   } catch (err) {
@@ -1202,7 +1202,7 @@ app.get("/api/shared-carts/my/rooms", verifyAuth, async (req, res) => {
   }
 });
 
-// GET /api/shared-carts/:roomCode — Get room details, members, enriched items, and total
+
 app.get("/api/shared-carts/:roomCode", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1212,7 +1212,7 @@ app.get("/api/shared-carts/:roomCode", verifyAuth, async (req, res) => {
       return res.status(404).json({ message: `Shared cart '${cleanCode}' not found.` });
     }
 
-    // Verify authorized membership
+
     const isMember = cart.members.some((m) => m.toString() === req.user._id.toString());
     if (!isMember) {
       return res.status(403).json({ message: "Access denied. You are not a member of this shared room." });
@@ -1225,7 +1225,7 @@ app.get("/api/shared-carts/:roomCode", verifyAuth, async (req, res) => {
   }
 });
 
-// POST /api/shared-carts/:roomCode/items — Add or increment a product in the shared cart
+
 app.post("/api/shared-carts/:roomCode/items", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1245,23 +1245,23 @@ app.post("/api/shared-carts/:roomCode/items", verifyAuth, async (req, res) => {
       return res.status(400).json({ message: "This shared cart room is closed." });
     }
 
-    // Verify membership
+
     const isMember = cart.members.some((m) => m.toString() === req.user._id.toString());
     if (!isMember) {
       return res.status(403).json({ message: "Only room members can add products to this shared cart." });
     }
 
-    // Optimistic Concurrency Check
+
     if (version !== undefined && version !== null && Number(version) !== cart.version) {
       const current = await enrichSharedCart(cart);
       return res.status(409).json({
         message: "Cart was updated by another member in the meantime. Latest cart synced.",
         conflict: true,
-        sharedCart: current,
+        sharedCart: current
       });
     }
 
-    // Validate product exists in MongoDB and check stock
+
     const product = await Product.findOne({ productId });
     if (!product) {
       return res.status(404).json({ message: `Product '${productId}' not found in catalog.` });
@@ -1272,7 +1272,7 @@ app.post("/api/shared-carts/:roomCode/items", verifyAuth, async (req, res) => {
 
     if (product.quantity < newTotalQty) {
       return res.status(400).json({
-        message: `Requested quantity (${newTotalQty}) exceeds available stock (${product.quantity}) for '${product.productName || productId}'.`,
+        message: `Requested quantity (${newTotalQty}) exceeds available stock (${product.quantity}) for '${product.productName || productId}'.`
       });
     }
 
@@ -1285,7 +1285,7 @@ app.post("/api/shared-carts/:roomCode/items", verifyAuth, async (req, res) => {
         productId,
         quantity: reqQty,
         addedBy: req.user._id,
-        addedByUsername: req.user.username,
+        addedByUsername: req.user.username
       });
     }
 
@@ -1296,14 +1296,14 @@ app.post("/api/shared-carts/:roomCode/items", verifyAuth, async (req, res) => {
 
     res.status(201).json({
       message: `Added '${product.productName || productId}' to shared cart.`,
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to add item to shared cart.", error: err.message });
   }
 });
 
-// PUT /api/shared-carts/:roomCode/items/:productId — Update product quantity in shared cart
+
 app.put("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1329,13 +1329,13 @@ app.put("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (req, 
       return res.status(403).json({ message: "Only room members can modify this shared cart." });
     }
 
-    // Optimistic Concurrency Check
+
     if (version !== undefined && version !== null && Number(version) !== cart.version) {
       const current = await enrichSharedCart(cart);
       return res.status(409).json({
         message: "Cart was updated by another member in the meantime. Latest cart synced.",
         conflict: true,
-        sharedCart: current,
+        sharedCart: current
       });
     }
 
@@ -1354,7 +1354,7 @@ app.put("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (req, 
 
       if (product.quantity < newQty) {
         return res.status(400).json({
-          message: `Requested quantity (${newQty}) exceeds available stock (${product.quantity}).`,
+          message: `Requested quantity (${newQty}) exceeds available stock (${product.quantity}).`
         });
       }
 
@@ -1368,14 +1368,14 @@ app.put("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (req, 
 
     res.json({
       message: newQty <= 0 ? "Product removed from shared cart." : "Quantity updated successfully.",
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to update item quantity.", error: err.message });
   }
 });
 
-// DELETE /api/shared-carts/:roomCode/items/:productId — Remove product from shared cart
+
 app.delete("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1396,13 +1396,13 @@ app.delete("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (re
       return res.status(403).json({ message: "Only room members can modify this shared cart." });
     }
 
-    // Optimistic Concurrency Check
+
     if (version !== undefined && version !== null && Number(version) !== cart.version) {
       const current = await enrichSharedCart(cart);
       return res.status(409).json({
         message: "Cart was updated by another member in the meantime. Latest cart synced.",
         conflict: true,
-        sharedCart: current,
+        sharedCart: current
       });
     }
 
@@ -1419,14 +1419,14 @@ app.delete("/api/shared-carts/:roomCode/items/:productId", verifyAuth, async (re
 
     res.json({
       message: "Product removed from shared cart successfully.",
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to remove item from shared cart.", error: err.message });
   }
 });
 
-// DELETE /api/shared-carts/:roomCode/leave — Leave the shared shopping room
+
 app.delete("/api/shared-carts/:roomCode/leave", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1443,7 +1443,7 @@ app.delete("/api/shared-carts/:roomCode/leave", verifyAuth, async (req, res) => 
 
     cart.members.splice(memberIndex, 1);
 
-    // Creator ownership handling: reassign or close
+
     if (cart.createdBy.toString() === req.user._id.toString()) {
       if (cart.members.length > 0) {
         cart.createdBy = cart.members[0];
@@ -1456,14 +1456,14 @@ app.delete("/api/shared-carts/:roomCode/leave", verifyAuth, async (req, res) => 
     await cart.save();
 
     res.json({
-      message: "You have left the shared shopping room.",
+      message: "You have left the shared shopping room."
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to leave shared cart room.", error: err.message });
   }
 });
 
-// DELETE /api/shared-carts/:roomCode/close — Close the shared shopping room (Creator only)
+
 app.delete("/api/shared-carts/:roomCode/close", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1482,14 +1482,14 @@ app.delete("/api/shared-carts/:roomCode/close", verifyAuth, async (req, res) => 
     await cart.save();
 
     res.json({
-      message: "Shared shopping room has been closed.",
+      message: "Shared shopping room has been closed."
     });
   } catch (err) {
     res.status(500).json({ message: "Failed to close shared cart room.", error: err.message });
   }
 });
 
-// POST /api/shared-carts/:roomCode/checkout — Checkout the shared cart (Creator only)
+
 app.post("/api/shared-carts/:roomCode/checkout", verifyAuth, async (req, res) => {
   try {
     const cleanCode = req.params.roomCode.toUpperCase().trim();
@@ -1499,7 +1499,7 @@ app.post("/api/shared-carts/:roomCode/checkout", verifyAuth, async (req, res) =>
       return res.status(404).json({ message: `Shared cart '${cleanCode}' not found.` });
     }
 
-    // Verify creator authorization
+
     if (cart.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Unauthorized. Only the room creator can initiate checkout." });
     }
@@ -1512,7 +1512,7 @@ app.post("/api/shared-carts/:roomCode/checkout", verifyAuth, async (req, res) =>
       return res.status(400).json({ message: "Cannot checkout an empty shopping cart." });
     }
 
-    // Validate available stock for each item from MongoDB
+
     for (const item of cart.items) {
       const product = await Product.findOne({ productId: item.productId });
       if (!product) {
@@ -1520,17 +1520,17 @@ app.post("/api/shared-carts/:roomCode/checkout", verifyAuth, async (req, res) =>
       }
       if (product.quantity < item.quantity) {
         return res.status(400).json({
-          message: `Insufficient stock for '${product.productName || item.productId}'. Available: ${product.quantity}, needed: ${item.quantity}.`,
+          message: `Insufficient stock for '${product.productName || item.productId}'. Available: ${product.quantity}, needed: ${item.quantity}.`
         });
       }
     }
 
-    // Atomically decrement stock
+
     for (const item of cart.items) {
       await Product.updateOne({ productId: item.productId }, { $inc: { quantity: -item.quantity } });
     }
 
-    // Close shared cart upon order completion
+
     cart.status = "closed";
     cart.version += 1;
     await cart.save();
@@ -1539,10 +1539,9 @@ app.post("/api/shared-carts/:roomCode/checkout", verifyAuth, async (req, res) =>
 
     res.json({
       message: "Shared cart checkout successful! Thank you for shopping together.",
-      sharedCart: enriched,
+      sharedCart: enriched
     });
   } catch (err) {
     res.status(500).json({ message: "Checkout failed.", error: err.message });
   }
 });
-

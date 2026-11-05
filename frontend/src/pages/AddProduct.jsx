@@ -11,7 +11,7 @@ function AddProduct({ currentUser, onLogout }) {
     productPrice: "",
     category: "",
     quantity: "",
-    description: "",
+    description: ""
   });
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -29,13 +29,13 @@ function AddProduct({ currentUser, onLogout }) {
     setErrorMessage("");
 
     if (
-      !formData.productId.trim() ||
-      !formData.productName.trim() ||
-      !formData.productPrice ||
-      !formData.category.trim() ||
-      formData.quantity === "" ||
-      !formData.description.trim()
-    ) {
+    !formData.productId.trim() ||
+    !formData.productName.trim() ||
+    !formData.productPrice ||
+    !formData.category.trim() ||
+    formData.quantity === "" ||
+    !formData.description.trim())
+    {
       setErrorMessage("Please fill in all product fields.");
       return;
     }
@@ -50,46 +50,46 @@ function AddProduct({ currentUser, onLogout }) {
       quantity: Number(formData.quantity),
       description: formData.description.trim(),
       name: formData.productName.trim(),
-      price: Number(formData.productPrice),
+      price: Number(formData.productPrice)
     };
 
     fetch(API_PRODUCTS_URL, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          const errorText = errorData?.message || `Failed to add product (HTTP ${response.status})`;
-          throw new Error(errorText);
-        }
-        return response.json();
-      })
-      .then(() => {
-        setSubmitting(false);
-        setSuccessMessage("Product added successfully.");
-        setFormData({
-          productId: "",
-          productName: "",
-          productPrice: "",
-          category: "",
-          quantity: "",
-          description: "",
-        });
-        setTimeout(() => {
-          navigate("/products");
-        }, 1000);
-      })
-      .catch((err) => {
-        console.error("Error creating product:", err);
-        setSubmitting(false);
-        setErrorMessage(
-          err.message.includes("E11000")
-            ? "A product with this Product ID already exists. Please use a unique ID."
-            : err.message || "Failed to create product."
-        );
+      body: JSON.stringify(payload)
+    }).
+    then(async (response) => {
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorText = errorData?.message || `Failed to add product (${response.status})`;
+        throw new Error(errorText);
+      }
+      return response.json();
+    }).
+    then(() => {
+      setSubmitting(false);
+      setSuccessMessage("Product added successfully.");
+      setFormData({
+        productId: "",
+        productName: "",
+        productPrice: "",
+        category: "",
+        quantity: "",
+        description: ""
       });
+      setTimeout(() => {
+        navigate("/products");
+      }, 1000);
+    }).
+    catch((err) => {
+      console.error("Error creating product:", err);
+      setSubmitting(false);
+      setErrorMessage(
+        err.message.includes("E11000") ?
+        "A product with this Product ID already exists. Please use a unique ID." :
+        err.message || "Failed to create product."
+      );
+    });
   };
 
   return (
@@ -101,7 +101,7 @@ function AddProduct({ currentUser, onLogout }) {
           <div>
             <h2>Add New Product</h2>
             <p className="subtext">
-              Create a new product record in MongoDB.
+              Add a new product.
             </p>
           </div>
           <div className="nav-actions">
@@ -115,17 +115,17 @@ function AddProduct({ currentUser, onLogout }) {
         </div>
 
         <div className="clean-form-card">
-          {successMessage && (
-            <div className="alert alert-success">
+          {successMessage &&
+          <div className="alert alert-success">
               <span>{successMessage}</span>
             </div>
-          )}
+          }
 
-          {errorMessage && (
-            <div className="alert alert-error">
+          {errorMessage &&
+          <div className="alert alert-error">
               <span>{errorMessage}</span>
             </div>
-          )}
+          }
 
           <form onSubmit={handleSubmit} className="clean-form">
             <div className="clean-form-group">
@@ -141,8 +141,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-input"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-group">
@@ -158,8 +158,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-input"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-group">
@@ -177,8 +177,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-input"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-group">
@@ -194,8 +194,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-input"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-group">
@@ -212,8 +212,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-input"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-group">
@@ -229,8 +229,8 @@ function AddProduct({ currentUser, onLogout }) {
                 onChange={handleChange}
                 className="clean-textarea"
                 disabled={submitting}
-                required
-              />
+                required />
+              
             </div>
 
             <div className="clean-form-actions">
@@ -238,23 +238,23 @@ function AddProduct({ currentUser, onLogout }) {
                 type="button"
                 className="btn-secondary"
                 onClick={() => navigate("/products")}
-                disabled={submitting}
-              >
+                disabled={submitting}>
+                
                 Cancel
               </button>
               <button
                 type="submit"
                 className="btn-primary"
-                disabled={submitting}
-              >
+                disabled={submitting}>
+                
                 {submitting ? "Adding..." : "Add Product"}
               </button>
             </div>
           </form>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }
 
 export default AddProduct;
