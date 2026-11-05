@@ -120,6 +120,13 @@ function Cart({ cart = [], updateQuantity, removeFromCart, clearCart }) {
                 Clear Cart
               </button>
             )}
+
+            <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px dashed #e3dccb", textAlign: "center" }}>
+              <span style={{ fontSize: "13px", color: "#54665c" }}>Have reserved products? </span>
+              <Link to="/reservations" style={{ fontSize: "13px", fontWeight: "600", color: "#1b3b2b" }}>
+                My Reservations &rarr;
+              </Link>
+            </div>
           </div>
         </div>
       )}
