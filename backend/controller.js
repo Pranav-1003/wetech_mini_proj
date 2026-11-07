@@ -1,3 +1,4 @@
+require("dotenv").config();
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
@@ -11,16 +12,31 @@ const Reservation = require("./reservations");
 const SharedCart = require("./sharedCart");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "webtech_mini_proj_jwt_secret_key_2026_secure";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://pranav03102007_db_user:PranavPrakasH10@cluster0.ki5fijl.mongodb.net/lab8";
 
 app.use(cors());
 app.use(express.json());
 
+const cleanupExpiredReservations = async () => {
+  if (mongoose.connection.readyState !== 1) return;
+  try {
+    await Reservation.updateMany(
+      { status: "active", expiresAt: { $lte: new Date() } },
+      { $set: { status: "expired" } }
+    );
+  } catch (err) {
+    console.error("Reservation cleanup error:", err.message);
+  }
+};
+
 mongoose.
-connect("mongodb+srv://pranav03102007_db_user:PranavPrakasH10@cluster0.ki5fijl.mongodb.net/lab8").
-then(() => console.log("Connected to MongoDB!")).
-catch((err) => console.error("MongoDB connection error:", err));
+  connect(MONGO_URI).
+  then(() => {
+    console.log("Connected to MongoDB!");
+    cleanupExpiredReservations();
+  }).catch((err) => console.error("MongoDB connection error:", err));
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
@@ -29,8 +45,8 @@ app.listen(PORT, () => {
 const verifyAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith("Bearer ") ?
-  authHeader.split(" ")[1] :
-  authHeader || req.headers["x-user-email"];
+    authHeader.split(" ")[1] :
+    authHeader || req.headers["x-user-email"];
 
   if (!token) {
     return res.status(401).json({ message: "Unauthorized. Please log in first." });
@@ -40,7 +56,7 @@ const verifyAuth = async (req, res, next) => {
 
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = (decoded.userId ? await User.findById(decoded.userId) : null) || (
-    decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
+      decoded.emailId ? await User.findOne({ emailId: decoded.emailId.toLowerCase().trim() }) : null);
 
     if (!user) {
       return res.status(401).json({ message: "Invalid user authentication token." });
@@ -63,7 +79,7 @@ const verifyAuth = async (req, res, next) => {
         req.user = legacyUser;
         return next();
       }
-    } catch {}
+    } catch { }
 
     return res.status(401).json({ message: "Invalid authentication token." });
   }
@@ -159,8 +175,8 @@ app.get(["/api/products", "/products"], verifyAuth, async (req, res) => {
 
 
     const activeReservations = await Reservation.aggregate([
-    { $match: { status: "active", expiresAt: { $gt: new Date() } } },
-    { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
+      { $match: { status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
     );
     const reservedMap = {};
     activeReservations.forEach((r) => {
@@ -257,8 +273,8 @@ app.get(["/api/products/:productId", "/products/:productId"], async (req, res) =
     );
 
     const activeReservations = await Reservation.aggregate([
-    { $match: { productId: product.productId, status: "active", expiresAt: { $gt: new Date() } } },
-    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+      { $match: { productId: product.productId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
     );
     const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
     const obj = product.toObject();
@@ -284,7 +300,7 @@ app.put(["/api/products/:productId", "/products/:productId"], async (req, res) =
     const updated = await Product.findOneAndUpdate(
       { productId: req.params.productId },
       req.body,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!updated) return res.status(404).json({ message: "Product not found" });
     res.json(updated);
@@ -357,18 +373,7 @@ app.delete(["/api/products/:productId", "/products/:productId"], async (req, res
 });
 
 
-const cleanupExpiredReservations = async () => {
-  try {
-    await Reservation.updateMany(
-      { status: "active", expiresAt: { $lte: new Date() } },
-      { $set: { status: "expired" } }
-    );
-  } catch (err) {
-    console.error("Reservation cleanup error:", err.message);
-  }
-};
 setInterval(cleanupExpiredReservations, 60 * 1000);
-cleanupExpiredReservations();
 
 
 
@@ -395,8 +400,8 @@ app.post("/api/reservations", verifyAuth, async (req, res) => {
 
 
     const activeReservations = await Reservation.aggregate([
-    { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
-    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+      { $match: { productId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
     );
     const totalReserved = activeReservations.length > 0 ? activeReservations[0].totalReserved : 0;
     const availableStock = Math.max(0, product.quantity - totalReserved);
@@ -426,8 +431,8 @@ app.post("/api/reservations", verifyAuth, async (req, res) => {
       status: "active",
       expiresAt: { $gt: new Date() },
       $or: [
-      { createdAt: { $lt: reservation.createdAt } },
-      { createdAt: reservation.createdAt, _id: { $lte: reservation._id } }]
+        { createdAt: { $lt: reservation.createdAt } },
+        { createdAt: reservation.createdAt, _id: { $lte: reservation._id } }]
 
     });
     const cumulativeReserved = activePriorReservations.reduce((sum, r) => sum + r.quantity, 0);
@@ -460,13 +465,13 @@ app.get("/api/reservations/my", verifyAuth, async (req, res) => {
     );
 
     const reservations = await Reservation.find({ userId: req.user._id }).
-    sort({ createdAt: -1 });
+      sort({ createdAt: -1 });
 
 
     const productIds = [...new Set(reservations.map((r) => r.productId))];
     const products = await Product.find({ productId: { $in: productIds } });
     const productMap = {};
-    products.forEach((p) => {productMap[p.productId] = p;});
+    products.forEach((p) => { productMap[p.productId] = p; });
 
     const enriched = reservations.map((r) => ({
       ...r.toObject(),
@@ -486,7 +491,7 @@ app.delete("/api/reservations/:id", verifyAuth, async (req, res) => {
     const updated = await Reservation.findOneAndUpdate(
       { _id: req.params.id, userId: req.user._id, status: "active" },
       { $set: { status: "cancelled" } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updated) {
@@ -518,7 +523,7 @@ app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
         expiresAt: { $gt: new Date() }
       },
       { $set: { status: "completed" } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedReservation) {
@@ -544,7 +549,7 @@ app.post("/api/reservations/:id/complete", verifyAuth, async (req, res) => {
     const updatedProduct = await Product.findOneAndUpdate(
       { productId: updatedReservation.productId, quantity: { $gte: updatedReservation.quantity } },
       { $inc: { quantity: -updatedReservation.quantity } },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedProduct) {
@@ -590,9 +595,9 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
   const stopWords = new Set(["the", "a", "an", "and", "or", "with", "for", "in", "of", "to", "is", "by", "on"]);
   const origTokens = new Set(
     `${origName} ${origDesc}`.
-    replace(/[^a-z0-9\s]/g, " ").
-    split(/\s+/).
-    filter((w) => w.length > 2 && !stopWords.has(w))
+      replace(/[^a-z0-9\s]/g, " ").
+      split(/\s+/).
+      filter((w) => w.length > 2 && !stopWords.has(w))
   );
 
   const scoredAlternatives = [];
@@ -615,9 +620,9 @@ function findCheaperAlternatives(originalProduct, candidates, quantity = 1) {
     const candName = String(candidate.productName || candidate.name || "").toLowerCase();
     const candDesc = String(candidate.description || "").toLowerCase();
     const candTokens = `${candName} ${candDesc}`.
-    replace(/[^a-z0-9\s]/g, " ").
-    split(/\s+/).
-    filter((w) => w.length > 2 && !stopWords.has(w));
+      replace(/[^a-z0-9\s]/g, " ").
+      split(/\s+/).
+      filter((w) => w.length > 2 && !stopWords.has(w));
 
     let keywordOverlap = 0;
     candTokens.forEach((token) => {
@@ -870,8 +875,8 @@ const handleAlternativesRequest = async (req, res) => {
 
     const allProducts = await Product.find();
     const activeRes = await Reservation.aggregate([
-    { $match: { status: "active", expiresAt: { $gt: new Date() } } },
-    { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
+      { $match: { status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: "$productId", totalReserved: { $sum: "$quantity" } } }]
     );
     const reservedMap = {};
     activeRes.forEach((r) => {
@@ -948,8 +953,8 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
 
 
     const activeRes = await Reservation.aggregate([
-    { $match: { productId: replacementProductId, status: "active", expiresAt: { $gt: new Date() } } },
-    { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
+      { $match: { productId: replacementProductId, status: "active", expiresAt: { $gt: new Date() } } },
+      { $group: { _id: null, totalReserved: { $sum: "$quantity" } } }]
     );
     const totalReserved = activeRes.length > 0 ? activeRes[0].totalReserved : 0;
     const availableStock = Math.max(0, replacementProduct.quantity - totalReserved);
@@ -965,10 +970,10 @@ app.post("/api/cart/replace", verifyAuth, async (req, res) => {
 
 
     let workingCart = Array.isArray(clientCart) && clientCart.length > 0 ?
-    clientCart.map((i) => ({ productId: i.productId || i.id || i._id, quantity: Number(i.quantity || 1) })) :
-    user.cart && user.cart.length > 0 ?
-    user.cart.map((i) => ({ productId: i.productId, quantity: Number(i.quantity || 1) })) :
-    [];
+      clientCart.map((i) => ({ productId: i.productId || i.id || i._id, quantity: Number(i.quantity || 1) })) :
+      user.cart && user.cart.length > 0 ?
+        user.cart.map((i) => ({ productId: i.productId, quantity: Number(i.quantity || 1) })) :
+        [];
 
     const targetIndex = workingCart.findIndex(
       (item) => String(item.productId) === String(originalProductId)
@@ -1192,9 +1197,9 @@ app.post("/api/shared-carts/join", verifyAuth, async (req, res) => {
 app.get("/api/shared-carts/my/rooms", verifyAuth, async (req, res) => {
   try {
     const rooms = await SharedCart.find({ members: req.user._id, status: "active" }).
-    populate("createdBy", "username emailId").
-    populate("members", "username emailId").
-    sort({ updatedAt: -1 });
+      populate("createdBy", "username emailId").
+      populate("members", "username emailId").
+      sort({ updatedAt: -1 });
 
     res.json(rooms);
   } catch (err) {
